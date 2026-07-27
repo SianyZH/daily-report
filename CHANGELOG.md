@@ -8,6 +8,8 @@
 
 ## 2026-07-27
 
+- fix: 日历授权回调同步刷新 Supabase 登录态，根治登录 JWT 过期导致日历导入反复报 401；后端 v22 增强 authGuard 失败审计
+- fix: 日历授权回调同步刷新 Supabase 登录态，根治登录 JWT 过期导致日历导入反复报 401；后端 v22 增强 authGuard 失败审计
 - fix: 钉钉日历导入修复——授权回跳后还原所选日期(根治跳回今天)；失败显示钉钉真实报错且杜绝重授权死循环；后端写日历失败审计日志(v21)
 - **fix(后端 v20)**: 根治「账号邮箱对应错误身份」——邮箱改由 SHA-256(unionId) 规范派生（抗碰撞、不再小写化）；更新既有账号时强制同时重写 email+user_metadata，保证「邮箱≡union_id」铁律，杜绝邮箱属A身份属B的漂移。部署 Edge Function v20。
 - fix: 钉钉登录失败时展示完整诊断字段(foundBy/userId/email/putError/hint)；清理漂移账号
