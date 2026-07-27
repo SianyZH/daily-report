@@ -499,6 +499,18 @@
     </div>
   </div>
 </div>
+
+<!-- 日报详情弹窗 -->
+<div id="reportDetailModal" class="privacy-modal hidden">
+  <div class="privacy-box" style="max-width:640px">
+    <button class="privacy-close" onclick="closeReportDetail()" title="关闭">×</button>
+    <div id="rdHead"></div>
+    <div id="rdBody" class="rd-body"></div>
+    <div class="privacy-actions">
+      <button class="btn btn-ghost" onclick="closeReportDetail()">关闭</button>
+    </div>
+  </div>
+</div>
 <style>
 .privacy-modal{position:fixed;inset:0;background:rgba(15,18,30,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
 .privacy-modal.hidden{display:none}
@@ -511,6 +523,17 @@
 .privacy-actions{margin-top:18px;text-align:right}
 .privacy-close{position:absolute;top:10px;right:14px;border:none;background:transparent;font-size:24px;line-height:1;color:var(--muted);cursor:pointer}
 .privacy-close:hover{color:var(--text)}
+/* 日报详情弹窗 */
+.rd-head{margin-bottom:14px}
+.rd-head .rd-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:20px;font-weight:800;margin-bottom:6px}
+.rd-head .rd-meta{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.rd-body{font-size:14px;line-height:1.7}
+.rd-task{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--bg)}
+.rd-task .rd-idx{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:700;margin-right:8px;flex:0 0 auto}
+.rd-task .rd-desc{font-weight:600;color:var(--text)}
+.rd-task .rd-result{margin-top:6px;color:var(--text);opacity:.82;padding-left:30px}
+.rd-task .rd-result b{color:var(--accent);font-weight:600}
+.rd-empty{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--muted)}
 </style>
 
 <script>
@@ -2078,6 +2101,7 @@ async function clearFormKeepName(){
 
 /* ---------- 日报列表 ---------- */
 let allReports=[];
+let renderedReports=[];   // 当前筛选后渲染的列表，供详情弹窗按索引查找
 async function loadReports(){
   if(supa){
     const {data,error}=await supa.from('daily_reports').select('*').order('report_date',{ascending:false}).order('created_at',{ascending:false});
@@ -2115,20 +2139,51 @@ function renderReports(){
   });
   const box=document.getElementById('reportList');
   if(list.length===0){ box.innerHTML='<div class="empty"><div class="empty-icon">📭</div>暂无日报，快去填写第一条吧！</div>'; return; }
-  box.innerHTML=list.map(r=>{
+  renderedReports=list;
+  box.innerHTML=list.map((r,idx)=>{
     const tasks=(r.tasks||[]).filter(t=>t.desc||t.result);
     const preview=tasks.slice(0,3).map((t,i)=>`${i+1}. ${esc(t.desc||'-')}`).join('　');
     const total=tasks.length;
-    return `<div class="report-item">
+    return `<div class="report-item" onclick="openReportDetail(${idx})">
       <div class="ri-head">
         <span class="ri-name">👤 ${esc(r.user_name)} <span class="badge badge-blue">${total} 项任务</span></span>
         <span class="ri-date">📅 ${r.report_date}</span>
       </div>
       <div class="ri-tasks">${preview||'（无内容）'}${total>3?' …':''}</div>
       ${r.report_to?`<div style="margin-top:6px;font-size:13px;color:var(--muted)">汇报给：${esc(r.report_to)}</div>`:''}
+      <div style="margin-top:8px;text-align:right;font-size:13px;color:var(--primary);font-weight:600">查看详情 ›</div>
     </div>`;
   }).join('');
 }
+
+/* ---------- 日报详情弹窗 ---------- */
+function openReportDetail(idx){
+  const r=renderedReports[idx];
+  if(!r) return;
+  const tasks=(r.tasks||[]).filter(t=>t.desc||t.result);
+  const total=tasks.length;
+  document.getElementById('rdHead').innerHTML=`
+    <div class="rd-title">👤 ${esc(r.user_name)} <span class="badge badge-blue">${total} 项任务</span></div>
+    <div class="rd-meta">
+      <span>📅 ${esc(r.report_date)}</span>
+      ${r.report_to?`<span>📨 汇报给：${esc(r.report_to)}</span>`:''}
+      ${r.created_at?`<span>🕒 提交于：${esc(String(r.created_at).replace('T',' ').slice(0,16))}</span>`:''}
+    </div>`;
+  document.getElementById('rdBody').innerHTML = total
+    ? tasks.map((t,i)=>`
+        <div class="rd-task">
+          <div class="rd-desc"><span class="rd-idx">${i+1}</span>${esc(t.desc||'-')}</div>
+          ${t.result?`<div class="rd-result"><b>结果 / 状态：</b>${esc(t.result)}</div>`:''}
+        </div>`).join('')
+    : `<div class="rd-empty">（该日报暂无任务内容）</div>`;
+  document.getElementById('reportDetailModal').classList.remove('hidden');
+}
+function closeReportDetail(){ document.getElementById('reportDetailModal').classList.add('hidden'); }
+// 点击遮罩关闭
+document.addEventListener('click',e=>{
+  const m=document.getElementById('reportDetailModal');
+  if(m && !m.classList.contains('hidden') && e.target===m) closeReportDetail();
+});
 
 /* ---------- 快捷日期 ---------- */
 function quickRange(type){
