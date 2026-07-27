@@ -8,6 +8,7 @@
 
 ## 2026-07-27
 
+- **fix(后端 v20)**: 根治「账号邮箱对应错误身份」——邮箱改由 SHA-256(unionId) 规范派生（抗碰撞、不再小写化）；更新既有账号时强制同时重写 email+user_metadata，保证「邮箱≡union_id」铁律，杜绝邮箱属A身份属B的漂移。部署 Edge Function v20。
 - fix: 钉钉登录失败时展示完整诊断字段(foundBy/userId/email/putError/hint)；清理漂移账号
 - fix: 日报详情弹窗结果/状态始终展示（彩色状态徽章+空态标注），头部显示结果已填X/Y；填表结果列加输入提示
 - chore: 前端接入 dev 分支工作流，部署须走 dev→main 并自动同步 CHANGELOG
