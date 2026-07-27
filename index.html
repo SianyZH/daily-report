@@ -1231,6 +1231,8 @@ async function startCalendarAuth(){
     authUrl.searchParams.set('scope', 'openid Calendar.Calendar.Read Calendar.Event.Read');
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('prompt', 'consent');
+    // 记住当前所选日期，授权回跳后还原（避免整页刷新后"跳回今天"）
+    localStorage.setItem('dt_cal_pending_date', document.getElementById('repDate').value || todayStr());
     toast('正在跳转到钉钉授权读取日历...');
     window.location.href = authUrl.toString();
   } catch(e) {
@@ -1275,10 +1277,14 @@ async function importFromCalendar(){
         }catch(e2){ if(e2.message) throw e2; throw new Error('请求失败 404'); }
       }
       if(res.status === 401 || res.status === 403 || (res.status >= 500 && res.status <= 599)){
-        // 服务端返回的 4xx/5xx 可能是钉钉令牌无效或无权限
+        // 服务端返回 4xx/5xx：多半是钉钉令牌无效/过期，或该应用未开通日历权限
+        let apiErr = '';
+        try { const jd = JSON.parse(t); apiErr = (jd.error||'') + (jd.detail ? '：'+jd.detail : ''); if(jd.status) apiErr += `（钉钉状态 ${jd.status}）`; } catch(_) {}
         if(justAuth){
-          try{ const jd=JSON.parse(t); throw new Error(jd.error||'授权后仍无法读取日历'); }catch(e2){ throw e2; }
+          // 已经重授权过一次仍失败 → 不再循环，明确提示是权限问题
+          throw new Error('重新授权后仍无法读取日历' + (apiErr ? '：'+apiErr : '') + '。请到钉钉开放平台确认应用已开通 Calendar.Calendar.Read / Calendar.Event.Read 权限（并保持 consent 授权），再重试。');
         }
+        // 首次失败：清掉可能失效的令牌，重新走授权（授权后会自动再导一次，且已记住所选日期）
         localStorage.removeItem(LS.dtCalToken);
         localStorage.removeItem(LS.dtCalUnion);
         localStorage.removeItem(LS.dtCalExpire);
@@ -1429,6 +1435,10 @@ async function handleCalendarCallback(code){
     const exp = (result.dingtalkExpireIn || 7200) * 1000;
     localStorage.setItem(LS.dtCalExpire, String(Date.now() + exp));
     toast('✅ 钉钉日历已授权，正在导入...');
+    // 还原授权前所选日期（OAuth 整页刷新会把 repDate 重置为今天）
+    const pd = localStorage.getItem('dt_cal_pending_date');
+    if(pd){ document.getElementById('repDate').value = pd; }
+    localStorage.removeItem('dt_cal_pending_date');
     localStorage.setItem('dt_cal_just_auth', '1');
     await importFromCalendar();
   } catch(e){
