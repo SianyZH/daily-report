@@ -8,6 +8,7 @@
 
 ## 2026-07-27
 
+- chore: 前端接入 dev 分支工作流，部署须走 dev→main 并自动同步 CHANGELOG
 - **feat**: 日报列表新增「查看详情」弹窗，完整展示每条任务的「描述 + 结果/状态」，不再截断为"…"
 - **fix**: 修复 GitHub Pages 子路径下钉钉 OAuth `redirect_uri` 缺失 `/daily-report/` 导致回调 404
 - **fix**: 钉钉登录改用 GitHub Pages 完整地址后回调正常
