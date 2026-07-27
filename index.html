@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能日报系统 · TALENT CREATION LTD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --primary:#5b6ef5; --primary-dark:#4453d6; --accent:#ff6b6b;
+    --bg:#f4f6fb; --card:#ffffff; --text:#1f2430; --muted:#8a90a2;
+    --border:#e6e9f2; --ok:#2ec27e; --warn:#f5a623;
+    --shadow:0 8px 30px rgba(30,40,90,.08);
+    --dingtalk:#0089FF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  a{color:var(--primary);text-decoration:none}
+
+  /* Layout */
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:230px;background:linear-gradient(180deg,#1e2440,#2a3156);color:#fff;padding:24px 16px;position:fixed;height:100vh;overflow-y:auto}
+  .brand{font-size:13px;letter-spacing:3px;opacity:.7;margin-bottom:4px}
+  .brand-title{font-size:19px;font-weight:700;margin-bottom:28px;color:#ffd93d}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:6px;font-size:15px;transition:.2s;color:rgba(255,255,255,.85)}
+  .nav-item:hover{background:rgba(255,255,255,.08)}
+  .nav-item.active{background:var(--primary);color:#fff;font-weight:600}
+  .nav-icon{font-size:18px}
+  .sidebar-foot{position:absolute;bottom:20px;left:16px;right:16px;font-size:12px;opacity:.5}
+
+  .main{margin-left:230px;flex:1;padding:28px 36px;max-width:100%}
+  .page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  .page-title{font-size:24px;font-weight:700}
+  .page-sub{color:var(--muted);font-size:14px;margin-top:2px}
+
+  /* User bar */
+  .userbar{display:flex;align-items:center;gap:10px;background:var(--card);padding:8px 14px;border-radius:30px;box-shadow:var(--shadow)}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+
+  /* 钉钉登录按钮 */
+  .dt-login-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;font-family:inherit;background:var(--dingtalk);color:#fff}
+  .dt-login-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,137,255,.35)}
+  .dt-logged-in{background:var(--ok);cursor:default;color:#fff}
+  .dt-logged-in:hover{transform:none;box-shadow:none}
+  .dt-name-tag{font-weight:700;max-width:70px;overflow:hidden;text-ellipsis;white-space:nowrap;display:inline-block}
+
+  /* Card */
+  .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:28px;margin-bottom:22px}
+  .card-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+
+  /* Template header */
+  .tpl-head{text-align:center;padding:22px;background:linear-gradient(135deg,#1e2440,#2a3156);border-radius:14px;color:#fff;margin-bottom:24px}
+  .tpl-company{font-size:12px;letter-spacing:3px;opacity:.75}
+  .tpl-title{font-size:26px;font-weight:800;color:var(--accent);margin-top:8px}
+  .tpl-title input{background:transparent;border:none;border-bottom:2px dashed rgba(255,255,255,.4);color:#ffd93d;font-size:inherit;font-weight:inherit;text-align:center;width:120px;outline:none}
+
+  /* Form fields */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-size:15px;outline:none;transition:.2s;font-family:inherit;background:#fff;color:var(--text)}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(91,110,245,.12)}
+
+  /* Task table */
+  table.tasks{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;border:1px solid var(--border);table-layout:fixed}
+  table.tasks th{background:#f8f9fc;padding:12px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+  table.tasks td{border-top:1px solid var(--border);padding:0;vertical-align:top}
+  .tnum{padding:14px 6px;font-weight:700;color:var(--primary);width:54px;display:flex;align-items:center;justify-content:center;gap:3px;text-align:center}
+  table.tasks th:nth-child(1){width:50px}
+  table.tasks th:nth-child(3){width:42%}
+  .drag-handle{cursor:grab;color:var(--muted);font-size:13px;line-height:1;user-select:none;flex:0 0 auto;opacity:.5;transition:opacity .15s}
+  .drag-handle:hover{opacity:1;color:var(--primary)}
+  .drag-handle:active{cursor:grabbing}
+  tr.sortable-ghost{opacity:.35}
+  tr.sortable-chosen{background:#fafbff}
+  tr.sortable-drag{background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+  table.tasks textarea{width:100%;border:none;padding:12px 14px;font-size:14px;outline:none;resize:vertical;min-height:46px;font-family:inherit;background:transparent;color:var(--text)}
+  table.tasks textarea:focus{background:#fafbff;box-shadow:inset 0 0 0 2px var(--primary)}
+  .col-res{width:38%}
+
+  .report-to{text-align:right;margin-top:18px;font-style:italic;font-weight:700;color:var(--accent)}
+  .report-to input,.report-to select{border:1px solid var(--border);border-radius:8px;outline:none;font-weight:700;font-size:15px;padding:7px 10px;color:var(--text);background:#fff;max-width:260px}
+  .report-to .rep-to-other{display:block;margin-top:8px;width:100%;max-width:none}
+  .hint{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:left;line-height:1.5}
+  .perm-note{font-size:13px;color:var(--muted);margin-top:4px}
+  .perm-note b{color:var(--accent)}
+  .dt-logout-btn{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--muted);font-family:inherit;transition:.2s}
+  .dt-logout-btn:hover{background:#fff1f0;color:#e5484d;border-color:#e5484d}
+
+  /* Buttons */
+  .btn{padding:11px 22px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:8px;font-family:inherit}
+  .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(91,110,245,.35)}
+  .btn-primary:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+  .btn-ghost:hover{background:var(--primary);color:#fff}
+  .btn-sm{padding:7px 14px;font-size:13px}
+  .btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+
+  /* List */
+  .report-item{border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px;transition:.2s;cursor:pointer}
+  .report-item:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+  .ri-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .ri-name{font-weight:700}
+  .ri-date{font-size:13px;color:var(--muted)}
+  .ri-tasks{font-size:14px;color:var(--text);opacity:.85}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+  .badge-blue{background:#eef0ff;color:var(--primary)}
+  .badge-green{background:#e6f8f0;color:var(--ok)}
+
+  /* AI result — 支持 Markdown 渲染 */
+  .ai-out{background:#f8f9fc;border-left:4px solid var(--primary);border-radius:10px;padding:22px;margin-top:18px;line-height:1.9;font-size:15px;display:none}
+  .ai-out.show{display:block;animation:fade .3s}
+  .ai-out h1,.ai-out h2,.ai-out h3,.ai-out h4{margin:14px 0 8px;color:#1e2440;font-weight:700}
+  .ai-out h2{font-size:18px;border-bottom:2px solid #e2e6f0;padding-bottom:5px}
+  .ai-out h3{font-size:16px}
+  .ai-out strong{font-weight:700;color:#1a1a2e}
+  .ai-out ul,.ai-out ol{padding-left:20px;margin:6px 0}
+  .ai-out li{margin:3px 0}
+  .ai-out p{margin:6px 0}
+  .ai-out code{background:#e8ecf4;padding:2px 6px;border-radius:4px;font-size:13px}
+  @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Toast */
+  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(120px);background:#1e2440;color:#fff;padding:13px 26px;border-radius:30px;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,.3);transition:.3s;z-index:9999}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  /* Config banner */
+  .banner{background:#fff7e6;border:1px solid #ffd591;color:#8a5a00;padding:14px 18px;border-radius:12px;margin-bottom:20px;font-size:14px;display:flex;align-items:center;gap:10px}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--muted)}
+  .empty-icon{font-size:48px;margin-bottom:12px}
+
+  .filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end}
+  .filters .field{min-width:150px}
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:22px}
+  .stat{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .stat-num{font-size:28px;font-weight:800;color:var(--primary)}
+  .stat-label{font-size:13px;color:var(--muted);margin-top:2px}
+
+  .hidden{display:none!important}
+  /* 登录着陆页 */
+  #page-login{width:100%;display:block}
+  body.login-visible .sidebar{display:none}
+  body.login-visible .main{margin-left:0;padding:0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+  body.login-visible .login-wrap{min-height:auto}
+  .login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 40px);width:100%;padding:0 20px;box-sizing:border-box}
+  .login-card{background:var(--card);border-radius:22px;padding:52px 46px;box-shadow:var(--shadow);text-align:center;max-width:440px;width:100%}
+  .login-logo{font-size:58px;margin-bottom:6px}
+  .login-title{font-size:27px;font-weight:800;color:var(--text);margin:0 0 6px}
+  .login-sub{color:var(--muted);font-size:14px;margin:0 0 30px;letter-spacing:.5px}
+  .dt-login-big{font-size:17px;padding:15px 30px;width:100%;justify-content:center;margin-top:4px}
+  .login-tip{color:var(--muted);font-size:13px;margin-top:24px;line-height:1.7}
+  .login-feat{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+  .login-feat span{background:#f1f5f9;border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)}
+  @media(max-width:820px){
+    .app{flex-direction:column}
+    .main{width:100%}
+    .sidebar{width:100%;height:auto;position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 14px}
+    .brand{width:auto;font-size:12px;letter-spacing:2px;margin:0 8px 0 0}
+    .brand-title{width:auto;margin:0 12px 0 0;font-size:16px}
+    .nav-item{flex:1 1 auto;justify-content:center;margin:0;padding:10px 8px;font-size:14px;min-width:84px}
+    .sidebar-foot{display:none}
+    .main{margin-left:0;padding:18px 16px}
+    .grid2{grid-template-columns:1fr}
+    .card{padding:20px 16px}
+    .page-title{font-size:20px}
+    .login-card{padding:40px 24px}
+    .report-to{text-align:left}
+    .report-to input,.report-to select{width:100%;text-align:left;margin-top:6px;max-width:none}
+    .report-to .rep-to-other{margin-top:8px}
+    .tpl-head{padding:18px 12px}
+    .tpl-title{font-size:22px}
+    .btn{padding:13px 18px;font-size:15px}
+    .ai-out{font-size:14px;padding:16px}
+    .filters .field{min-width:120px;flex:1}
+    table.tasks{table-layout:fixed}
+    .tnum,.tasks th:nth-child(1){width:48px;min-width:0;padding:10px 4px}
+  }
+  @media(max-width:480px){
+    .main{padding:14px 12px}
+    .card{padding:16px 12px}
+    .nav-item{min-width:70px;font-size:13px;padding:9px 6px;gap:6px}
+    .nav-icon{font-size:16px}
+    table.tasks th{font-size:11px;padding:10px 8px}
+    .tnum{width:32px;padding:10px 4px;font-size:13px}
+    .col-res{width:42%}
+    table.tasks textarea{font-size:13px;padding:10px}
+    .login-card{padding:32px 18px}
+    .login-logo{font-size:48px}
+    .login-title{font-size:23px}
+    .page-head{flex-direction:column;align-items:flex-start}
+    .userbar{width:100%;justify-content:space-between}
+    .page-title{font-size:19px}
+    .report-item{padding:14px}
+  }
+</style>
+<script src="sortable.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar hidden">
+    <div class="brand">TALENT CREATION LTD</div>
+    <div class="brand-title">📋 智能日报</div>
+    <div class="nav-item active" data-page="fill"><span class="nav-icon">✍️</span> 填写日报</div>
+    <div class="nav-item" data-page="list"><span class="nav-icon">📚</span> 日报列表</div>
+    <div class="nav-item" data-page="generate"><span class="nav-icon">🤖</span> 生成周报月报</div>
+    <div class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span> 设置</div>
+    <div class="sidebar-foot">Powered by DeepSeek V4<br>© 2026 智能日报系统</div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- config banner -->
+    <div id="cfgBanner" class="banner hidden">
+      ⚠️ 尚未配置云端数据库，当前数据仅存本机。请前往「设置」填写 Supabase 信息以启用多人在线。
+    </div>
+
+    <!-- ============ PAGE: LOGIN ============ -->
+    <section id="page-login" class="hidden">
+      <div class="login-wrap">
+        <div class="login-card">
+          <div class="login-logo">📋</div>
+          <h1 class="login-title">智能日报系统</h1>
+          <p class="login-sub">Daily Task Tracker · TALENT CREATION LTD</p>
+          <button class="dt-login-btn dt-login-big" onclick="startDingtalkLogin()">🔵 钉钉登录</button>
+          <div class="login-feat"><span>✅ 多人在线</span><span>🤖 AI 周报月报</span><span>🔒 权限隔离</span></div>
+          <p class="login-tip">请使用钉钉扫码登录后填写每日任务<br>登录后即可查看你有权限的日报</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE: FILL ============ -->
+    <section id="page-fill" class="hidden">
+      <div class="page-head">
+        <div>
+          <div class="page-title">✍️ 填写今日日报</div>
+          <div class="page-sub">按模板记录今天必须完成的任务</div>
+        </div>
+        <div class="userbar">
+          <div class="avatar" id="avatar">?</div>
+          <button class="dt-login-btn" id="dtLoginBtn" onclick="startDingtalkLogin()">
+            🔵 钉钉登录
+          </button>
+          <button class="dt-logout-btn hidden" id="dtLogoutBtn" onclick="logoutDingtalk()">退出</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tpl-head">
+          <div class="tpl-company">TALENT CREATION LTD</div>
+          <div class="tpl-title">What <input id="tplName" placeholder="I" value="I"> must get done today</div>
+        </div>
+
+        <div class="field">
+          <label>📅 日期</label>
+          <input type="date" id="repDate">
+        </div>
+
+        <table class="tasks">
+          <thead><tr><th>#</th><th>任务描述 (Task)</th><th class="col-res">结果 / 状态 (Result)</th></tr></thead>
+          <tbody id="taskBody"></tbody>
+        </table>
+        <div class="hint">📋 支持从 <b>Excel / 钉钉表格 / 飞书表格</b> 直接<b>复制多行</b>，在任意任务框里 <b>Ctrl/⌘+V 粘贴</b>，会自动按「描述↔结果」两列填入并自动增加行数。</div>
+
+        <div class="report-to">PLS REPORT TO
+          <select id="repTo" class="rep-to-select"><option value="">请选择直属上级 *</option></select>
+          <input type="text" id="repToOther" class="rep-to-other hidden" placeholder="输入直属上级的钉钉昵称">
+        </div>
+        <div class="hint">💡 请选择你的<b>直属上级</b>（必填）。列表取自团队通讯录。若列表没有，选「✏️ 其他（手动输入）」再填钉钉昵称。</div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="saveBtn" onclick="saveReport()">💾 提交日报</button>
+          <button class="btn btn-ghost" onclick="clearForm()">🗑️ 清空</button>
+          <button class="btn btn-ghost" id="calImportBtn" onclick="importFromCalendar()" title="一键把所选日期的钉钉日历日程填入任务描述（首次需授权读取日历）">📅 从钉钉日历导入</button>
+        </div>
+        <div class="hint" id="calHint">📅 点「从钉钉日历导入」可把所选日期的钉钉日程自动填进任务描述（结果需手动补）。首次使用会请求读取日历授权。</div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE: LIST ============ -->
+    <section id="page-list" class="hidden">
+      <div class="page-head">
+        <div>
+          <div class="page-title">📚 日报列表</div>
+          <div class="page-sub">仅显示你有权限查看的日报</div>
+          <div class="perm-note" id="permNote"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadReports()">🔄 刷新</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总日报数</div></div>
+        <div class="stat"><div class="stat-num" id="statPeople">0</div><div class="stat-label">参与人数</div></div>
+        <div class="stat"><div class="stat-num" id="statToday">0</div><div class="stat-label">今日提交</div></div>
+      </div>
+
+      <div class="filters">
+        <div class="field"><label>按人筛选</label><select id="fltPerson"><option value="">全部成员</option></select></div>
+        <div class="field"><label>起始日期</label><input type="date" id="fltFrom"></div>
+        <div class="field"><label>结束日期</label><input type="date" id="fltTo"></div>
+        <button class="btn btn-primary btn-sm" onclick="renderReports()">筛选</button>
+      </div>
+
+      <div class="card">
+        <div id="reportList"></div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE: GENERATE ============ -->
+    <section id="page-generate" class="hidden">
+      <div class="page-head">
+        <div>
+          <div class="page-title">🤖 AI 生成周报 / 月报</div>
+          <div class="page-sub">DeepSeek V4 自动汇总日报，一键生成</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📊 汇总设置</div>
+        <div class="filters">
+          <div class="field">
+            <label>报告类型</label>
+            <select id="genType">
+              <option value="weekly">周报</option>
+              <option value="monthly">月报</option>
+            </select>
+          </div>
+          <div class="field"><label>人员范围</label><select id="genPerson"><option value="">可见成员</option></select></div>
+          <div class="field"><label>起始日期</label><input type="date" id="genFrom"></div>
+          <div class="field"><label>结束日期</label><input type="date" id="genTo"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="genBtn" onclick="generateReport()">✨ 生成报告</button>
+          <button class="btn btn-ghost" onclick="previewReport()">🔍 预览提示词</button>
+          <button class="btn btn-ghost" onclick="quickRange('week')">📅 本周</button>
+          <button class="btn btn-ghost" onclick="quickRange('month')">📅 本月</button>
+        </div>
+        <p style="color:var(--muted);font-size:13px;margin-top:10px">「岗位职责」读取自 <b>设置 → 团队成员 &amp; 岗位职责</b>，生成时自动按成员注入输入，无需手动填写。点「🔍 预览提示词」可核对每位成员的【岗位职责】是否已进入输入。</p>
+
+        <div class="ai-out" id="genOut"></div>
+        <div class="btn-row hidden" id="genActions">
+          <button class="btn btn-ghost btn-sm" onclick="copyResult()">📋 复制</button>
+          <button class="btn btn-ghost btn-sm" onclick="downloadResult()">📥 下载 Markdown</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE: SETTINGS ============ -->
+    <section id="page-settings" class="hidden">
+      <div class="page-head">
+        <div>
+          <div class="page-title">⚙️ 设置</div>
+          <div class="page-sub">配置云端数据库、AI 模型与钉钉登录</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">☁️ 云端数据库 (Supabase)</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">填写后即可多人在线共享。获取方式见随附的《部署指南》。</p>
+        <div class="grid2">
+          <div class="field"><label>Supabase URL</label><input type="text" id="cfgUrl" placeholder="https://xxxx.supabase.co"></div>
+          <div class="field"><label>Supabase Anon Key</label><input type="password" id="cfgKey" placeholder="eyJhbGci..."></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveSupabaseCfg()">💾 保存并连接</button>
+          <button class="btn btn-ghost" onclick="testConnection()">🔌 测试连接</button>
+        </div>
+        <div id="cfgStatus" style="margin-top:14px;font-size:14px"></div>
+      </div>
+
+      <div class="card" id="cardDeepSeek">
+        <div class="card-title">🤖 DeepSeek V4 模型（全局配置）</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">由<b>管理员统一配置</b> DeepSeek Key，<b>全员共用</b>。Key 用「主密码」加密后存云端，<b>任意设备（电脑/手机）首次生成报告时输入一次主密码即可解锁</b>（可勾选本机记住，之后免输）。主密码由管理员设定并告知团队。</p>
+
+        <!-- 管理员：可配置 -->
+        <div id="dsAdminBox">
+          <div class="grid2">
+            <div class="field"><label>DeepSeek API Key</label><input type="password" id="cfgDsKey" placeholder="sk-..."></div>
+            <div class="field">
+              <label>模型</label>
+              <select id="cfgDsModel">
+                <option value="deepseek-v4-pro">deepseek-v4-pro（质量优先，推荐）</option>
+                <option value="deepseek-v4-flash">deepseek-v4-flash（更快更省）</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>主密码（用于加密 / 跨设备解密；留空则系统自动生成强密码）</label>
+            <input type="text" id="cfgMasterPass" placeholder="留空 = 系统自动生成">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveDeepSeekCfg()">💾 保存全局配置</button>
+          </div>
+          <div id="masterPassShow" style="margin-top:12px;font-size:14px;display:none"></div>
+        </div>
+
+        <!-- 普通用户：只读状态 -->
+        <div id="dsUserBox" style="display:none">
+          <p style="font-size:15px">✅ DeepSeek Key 已由管理员统一配置（已加密存储）。</p>
+          <p style="color:var(--muted);font-size:14px">你在本机首次生成周报/月报时，输入管理员告知的主密码即可解锁使用（可勾选本机记住）。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📝 报告提示词配置</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">可自定义 AI 生成周报/月报的格式与规则。修改后对本浏览器生成的报告生效。可用占位符：<code>{typeName}</code> <code>{from}</code> <code>{to}</code> <code>{corpus}</code> <code>{unit}</code> <code>{nextUnit}</code></p>
+        <div class="field" style="margin-bottom:14px">
+          <label>周报提示词</label>
+          <textarea id="cfgWeeklyPrompt" rows="11" spellcheck="false"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>月报提示词</label>
+          <textarea id="cfgMonthlyPrompt" rows="11" spellcheck="false"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="savePromptCfg()">💾 保存提示词</button>
+          <button class="btn btn-ghost" onclick="resetPromptCfg()">↺ 恢复默认</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👥 团队成员 &amp; 岗位职责</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">维护团队成员昵称与岗位职责。昵称用于「PLS REPORT TO」下拉选择；<b>岗位职责会作为 AI 生成周报/月报的重点依据</b>——AI 会基于每个人的职责，突出与其核心工作相关的成果与计划。</p>
+        <div class="field" style="margin-bottom:14px">
+          <label>成员名单（每行一人，格式：<b>昵称 ｜ 岗位职责</b>；职责可留空）</label>
+          <textarea id="cfgTeamMembers" rows="10" spellcheck="false" placeholder="周环 ｜ 负责整体运营与团队管理，统筹项目推进&#10;张三 ｜ 负责财务对账、报销审核与月度报表&#10;李四 ｜ 负责客户对接与订单跟进"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveTeamMembers()">💾 保存成员与职责</button>
+          <button class="btn btn-ghost" onclick="loadTeamMembers()">↺ 重新读取</button>
+          <button class="btn btn-ghost" onclick="syncTeamMembers()">🔄 同步通讯录 unionId</button>
+        </div>
+        <p id="tmMsg" style="font-size:13px;color:var(--muted);margin-top:8px"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔵 钉钉登录配置</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">用钉钉账号自动获取姓名，无需手动填写。AppSecret 存在服务端，不进入前端代码。</p>
+        <p style="font-size:13px;color:var(--muted)">当前状态：<span id="dtStatus">⏳ 未连接</span></p>
+        <div id="dtLogoutWrap" class="hidden" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="logoutDingtalk()">🚪 退出钉钉登录</button></div>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px">需管理员在钉钉开放平台创建企业内部应用并配置回调地址，详见部署指南。</p>
+        <p style="font-size:13px;color:var(--muted);margin-top:10px"><a href="javascript:void(0)" onclick="openPrivacy()">📄 查看隐私政策</a></p>
+      </div>
+
+      <div class="card" id="auditCard">
+        <div class="card-title">📜 操作审计日志（管理员）</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:12px">记录登录、日报提交与设置变更，满足安全追溯要求。仅管理员可见。</p>
+        <div id="auditList" style="font-size:13px;max-height:320px;overflow:auto"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 隐私政策与用户同意弹窗 -->
+<div id="privacyModal" class="privacy-modal hidden">
+  <div class="privacy-box">
+    <button class="privacy-close" id="privacyCloseBtn" onclick="closePrivacy()" title="关闭">×</button>
+    <h2>📄 隐私政策与用户同意</h2>
+    <div class="privacy-body">
+      <p>欢迎使用本系统。使用前请阅读以下说明（要点）：</p>
+      <ul>
+        <li><b>我们收集的信息</b>：你的钉钉身份（unionId、昵称）、填写的日报/周报/月报内容，以及你配置的 AI 模型 API Key。</li>
+        <li><b>用途</b>：用于身份识别、生成与共享团队日报，以及调用 AI 生成周报/月报。API Key 仅用于为你本人生成报告，已加密存储。</li>
+        <li><b>数据分级</b>：日报内容<b>可能包含客户、项目与商业秘密，属内部受限数据</b>，仅你本人、你的直属上级与管理员可见。</li>
+        <li><b>留存与共享</b>：数据存储于企业云端（Supabase），按权限最小化访问，不会向无关第三方提供。</li>
+        <li><b>你的权利</b>：你可随时修改或删除自己的日报；你配置的 API Key 可随时清除。</li>
+      </ul>
+      <p class="privacy-note">依据《个人信息保护法》《数据安全法》，点击「同意」即表示你已知悉并同意上述收集与处理方式。</p>
+    </div>
+    <div class="privacy-actions">
+      <button class="btn btn-primary" id="privacyAcceptBtn" onclick="acceptPrivacy()">✅ 我已阅读并同意</button>
+    </div>
+  </div>
+</div>
+
+<!-- 主密码解锁弹窗（复用隐私弹窗样式） -->
+<div id="masterPassModal" class="privacy-modal hidden">
+  <div class="privacy-box">
+    <h2 id="masterPassTitle">🔓 请输入主密码</h2>
+    <div class="privacy-body">
+      <p>DeepSeek Key 以主密码加密存储于云端。输入管理员告知的主密码即可在本机解锁，用于生成周报/月报。</p>
+      <div class="field" style="margin:14px 0">
+        <input type="password" id="masterPassInput" placeholder="主密码" autocomplete="off"
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)">
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text)">
+        <input type="checkbox" id="masterPassRemember" checked> 本机记住主密码（此后本设备免重复输入）
+      </label>
+      <div id="masterPassErr" style="color:#e5484d;font-size:13px;min-height:16px;margin-top:6px"></div>
+    </div>
+    <div class="privacy-actions">
+      <button class="btn btn-primary" id="masterPassOk">🔓 解锁</button>
+    </div>
+  </div>
+</div>
+<style>
+.privacy-modal{position:fixed;inset:0;background:rgba(15,18,30,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.privacy-modal.hidden{display:none}
+.privacy-box{position:relative;background:var(--card);color:var(--text);max-width:580px;width:100%;max-height:86vh;overflow:auto;border-radius:14px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.privacy-box h2{margin:0 0 12px;font-size:20px}
+.privacy-body{font-size:14px;line-height:1.7;color:var(--text)}
+.privacy-body ul{margin:8px 0;padding-left:20px}
+.privacy-body li{margin:4px 0}
+.privacy-note{color:var(--muted);font-size:13px;border-top:1px solid var(--border);padding-top:10px;margin-top:12px}
+.privacy-actions{margin-top:18px;text-align:right}
+.privacy-close{position:absolute;top:10px;right:14px;border:none;background:transparent;font-size:24px;line-height:1;color:var(--muted);cursor:pointer}
+.privacy-close:hover{color:var(--text)}
+</style>
+
+<script>
+/* ============================================================
+ *  智能日报系统 v2 · 前端逻辑
+ *  数据存储：Supabase（配置后）/ localStorage（未配置时降级）
+ *  AI：DeepSeek V4
+ *  登录：钉钉 OAuth2（可选）→ 自动填名 + 安全会话
+ * ============================================================ */
+const TASKS = 10;
+// ── 管理员名单：只有名单内的钉钉昵称可见「设置」页面 ──
+// 如需增减管理员，在此数组中加入/删除钉钉昵称即可
+const ADMIN_NICKS = ['周环'];
+// ── 预置的 Supabase 配置（由管理员部署时写入，用户无需手动填写）──
+const DEFAULT_SUPA_URL = 'https://islrwuochufdakdduhbc.supabase.co';
+const DEFAULT_SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzbHJ3dW9jaHVmZGFrZGR1aGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxOTkzMjYsImV4cCI6MjA5OTc3NTMyNn0.VxbwZ2J6Qd2rpRJ83Hv3h86crorb-90VymfTwssf50I';
+/* ========== 凭据加密（AES-GCM，密钥仅存浏览器本地，数据库/localStorage 只存密文） ========== */
+const ENC_PREFIX = 'v1:';            // 钉钉令牌（per-device 密钥）沿用此前缀
+const ENC_PREFIX_V2 = 'v2:';         // 主密码派生密钥（DeepSeek Key）新格式：v2:<salt>:<iv>:<ct>
+const LEGACY_SALT = 'sdr-global-fixed-salt-v1'; // 仅用于解密旧版 v1 密文（向后兼容）
+const PBKDF2_ITER_V1 = 100000;
+const PBKDF2_ITER_V2 = 500000;       // 升级：10万 → 50万迭代，抗暴力破解
+const SALT_BYTES = 16;
+function _b64enc(buf){ const b=new Uint8Array(buf); let s=''; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function _b64dec(b64){ const s=atob(b64); const b=new Uint8Array(s.length); for(let i=0;i<s.length;i++) b[i]=s.charCodeAt(i); return b; }
+/** 由主密码经 PBKDF2 派生 AES-256-GCM 密钥（salt/iter 可调；随机盐内嵌密文，保证跨设备可解密） */
+async function deriveKeyFromPass(pass, salt, iterations){
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(pass), {name:'PBKDF2'}, false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt: enc.encode(salt), iterations: iterations||PBKDF2_ITER_V1, hash:'SHA-256' },
+    km, { name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']
+  );
+}
+/** 生成强随机主密码（管理员留空时自动生成） */
+function genStrongPass(n){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const a=new Uint8Array(n); crypto.getRandomValues(a);
+  let s=''; for(let i=0;i<n;i++) s+=chars[a[i]%chars.length]; return s;
+}
+/** 弹出主密码输入框，返回 {pass, remember} */
+function requestMasterPass(promptText){
+  return new Promise((resolve)=>{
+    const modal=document.getElementById('masterPassModal');
+    const input=document.getElementById('masterPassInput');
+    const remember=document.getElementById('masterPassRemember');
+    const title=document.getElementById('masterPassTitle');
+    const err=document.getElementById('masterPassErr');
+    if(promptText) title.textContent=promptText;
+    if(err) err.textContent='';
+    input.value=''; remember.checked=true;
+    modal.classList.remove('hidden'); input.focus();
+    const done=()=>{
+      const pass=input.value.trim();
+      if(!pass){ toast('请输入主密码'); return; }
+      modal.classList.add('hidden');
+      resolve({ pass, remember: remember.checked });
+    };
+    document.getElementById('masterPassOk').onclick=done;
+    input.onkeydown=(e)=>{ if(e.key==='Enter') done(); };
+  });
+}
+/* ── 主密码派生密钥（DeepSeek Key 加密）── */
+let _masterPass = null;        // 当前会话主密码（内存，不落盘）
+let _keyBySalt = {};           // 缓存：派生参数 -> CryptoKey，避免重复 PBKDF2
+
+/** 本机记住主密码：用「独立设备密钥」加密后存盘（主密码不明文落盘） */
+async function rememberMasterPass(pass){
+  try{ localStorage.setItem('sdr_master_pass_v1', await encryptDevice(pass)); }catch(e){}
+}
+async function loadRememberedPass(){
+  const e = localStorage.getItem('sdr_master_pass_v1');
+  return e ? (await decryptDevice(e)) : null;
+}
+function forgetRememberedPass(){ localStorage.removeItem('sdr_master_pass_v1'); }
+
+/** 取得主密码：缓存 → 本机记住 → 弹窗 */
+async function getMasterPass(){
+  if(_masterPass) return _masterPass;
+  const remembered = await loadRememberedPass();
+  if(remembered){ _masterPass = remembered; return _masterPass; }
+  const { pass, remember } = await requestMasterPass();
+  _masterPass = pass;
+  if(remember) await rememberMasterPass(pass);
+  return pass;
+}
+
+/** 按派生参数取密钥并缓存（相同 salt/iter 不重复派生） */
+async function getKeyForDecrypt(saltStr, iter){
+  const ck = iter + '|' + saltStr;
+  if(_keyBySalt[ck]) return _keyBySalt[ck];
+  const pass = await getMasterPass();
+  const key = await deriveKeyFromPass(pass, saltStr, iter);
+  _keyBySalt[ck] = key;
+  return key;
+}
+
+/** 用主密码加密明文 → v2:<salt>:<iv>:<ct>（随机盐内嵌密文，跨设备可解密） */
+async function encryptWithPass(pass, plain){
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
+  const saltStr = _b64enc(salt);
+  const key = await deriveKeyFromPass(pass, saltStr, PBKDF2_ITER_V2);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plain));
+  return ENC_PREFIX_V2 + saltStr + ':' + _b64enc(iv) + ':' + _b64enc(ct);
+}
+
+/** 解密：支持 v2（随机盐+50万）与 v1（旧固定盐+10万）。主密码错误抛异常，由上层重输 */
+async function decryptText(cipher){
+  if(cipher==null || cipher==='' || typeof cipher!=='string') return cipher;
+  if(!cipher.startsWith('v')) return cipher; // 兼容历史明文（无 v 前缀）
+  if(!crypto || !crypto.subtle) return cipher;
+  try{
+    if(cipher.startsWith(ENC_PREFIX_V2)){
+      const p = cipher.split(':'); // v2 : salt : iv : ct
+      const key = await getKeyForDecrypt(p[1], PBKDF2_ITER_V2);
+      const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:_b64dec(p[2])}, key, _b64dec(p[3]));
+      return new TextDecoder().decode(pt);
+    }
+    if(cipher.startsWith(ENC_PREFIX)){
+      const p = cipher.split(':'); // v1 : iv : ct
+      const key = await getKeyForDecrypt(LEGACY_SALT, PBKDF2_ITER_V1);
+      const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:_b64dec(p[1])}, key, _b64dec(p[2]));
+      return new TextDecoder().decode(pt);
+    }
+    return cipher;
+  }catch(e){
+    // 解密失败（多半主密码不对）：清空已缓存主密码/密钥，下次需重输
+    _masterPass = null; _keyBySalt = {}; forgetRememberedPass();
+    throw e;
+  }
+}
+
+/* ── 钉钉令牌用「独立设备密钥」（本机随机生成，per-device，不依赖主密码、不弹窗）── */
+let _devKeyCache = null;
+async function getDeviceKey(){
+  if(_devKeyCache) return _devKeyCache;
+  let raw = localStorage.getItem('sdr_dev_key_v1');
+  if(!raw){
+    const k = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
+    raw = _b64enc(await crypto.subtle.exportKey('raw', k));
+    localStorage.setItem('sdr_dev_key_v1', raw);
+  }
+  _devKeyCache = await crypto.subtle.importKey('raw', _b64dec(raw), {name:'AES-GCM'}, true, ['encrypt','decrypt']);
+  return _devKeyCache;
+}
+async function encryptDevice(plain){
+  if(plain==null || plain==='') return plain;
+  if(!crypto || !crypto.subtle) return plain;
+  try{
+    const key = await getDeviceKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plain));
+    return ENC_PREFIX + _b64enc(iv) + ':' + _b64enc(ct);
+  }catch(e){ return plain; }
+}
+async function decryptDevice(cipher){
+  if(cipher==null || cipher==='' || typeof cipher!=='string' || !cipher.startsWith(ENC_PREFIX)) return cipher;
+  if(!crypto || !crypto.subtle) return cipher;
+  try{
+    const parts = cipher.split(':');
+    const key = await getDeviceKey();
+    const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:_b64dec(parts[1])}, key, _b64dec(parts[2]));
+    return new TextDecoder().decode(pt);
+  }catch(e){ return cipher; }
+}
+
+function getSupaUrl(){ return localStorage.getItem(LS.supaUrl) || DEFAULT_SUPA_URL; }
+function getSupaKey(){ return localStorage.getItem(LS.supaKey) || DEFAULT_SUPA_ANON; }
+
+/* ── AI 报告生成：系统提示词（固定规则，周报/月报共用）── */
+const SYS_PROMPT =
+`你是一位严谨的团队汇报助手。你的唯一职责是：把【原始日报数据】整理成一份简洁、有信息量、结构清晰的报告。
+
+必须遵守的硬性规则：
+1. 只基于原始数据：所有结论必须能在原始日报中找到对应任务，禁止编造或推算不存在的内容。
+2. 不得脑补完成状态：若某条任务的"结果"为空或未填写，必须如实标注为"结果未填写"，绝不可默认其为"已完成"。
+3. "PLS REPORT TO / 汇报对象"只是汇报关系，不是任务：绝不可把它当作任务名称、卡点来源或下周计划内容。
+4. 下周/下月计划只能从"进行中"和"结果未填写"的事项自然延伸，严禁新增原始数据中未提及的任务。
+5. 以岗位职责为组织主线：每位成员数据开头标注了【岗位职责】。**必须**以该职责为归类与评判主线——把该成员的每项工作归入对应职责板块，优先呈现与核心职责直接相关、能体现岗位价值的成果与计划；对明显偏离本职、属于协助性或临时性的内容，单独归入「其他／支持性工作」并弱化处理。**必须**在每个成员内容末尾给出一句「职责覆盖情况」小结（说明其本周／本月主要覆盖了哪些核心职责、哪些职责暂无相关进展）。严禁把职责描述本身当作已完成的任务来写。
+6. 语言像人写的报告，简短直接有细节。禁止"赋能""抓手""闭环""颗粒度""底层逻辑""护城河"等黑话。
+7. 使用 Markdown，标题层级清晰，适当用 emoji 但不过度。
+8. ⛔ 硬性字数上限：全篇报告总字数严格控制在 500 字以内（含标点）。超出必须删减，优先保留交付结果与关键卡点，砍掉铺垫与空话。`;
+
+/* ── 周报/月报提示词模板（设置页可改；占位符：{typeName}{from}{to}{corpus}{unit}{nextUnit}）── */
+const REPORT_PROMPT_TPL =
+`你是一位在美国制服贸易企业工作多年的总裁助理，极度擅长从零散的日报中提炼给老板看的周报。老板只关注：交付结果、关键卡点、跨部门资源需求。
+
+【输入参数说明】
+
+- {typeName}：报告类型，如 “周报”“部门周报”“个人周报”
+- {from}：数据起始日期
+- {to}：数据结束日期
+- {corpus}：粘贴进来的原始日报数据（可能单人，也可能多人多部门）
+- {unit}：报告主体的统称，如 “个人”“部门”“公司”
+- {nextUnit}：下一周期的统称，如 “下周”“下阶段“
+
+【数据范围】
+日报时间：{from} 至 {to}
+严格基于以下原始日报数据生成，不得编造任何数据之外的内容。
+原始数据中每位成员开头已标注其【岗位职责】，这是组织周报的主线依据。
+
+===== 原始日报数据 =====
+{corpus}
+===== 数据结束 =====
+
+【生成逻辑：以岗位职责为组织主线 + 智能归类合并】
+
+1. 先分析 {corpus} 的内容：
+   - 如果所有内容都明显围绕同一个人，按 “个人周报” 模式处理。
+   - 如果明显涉及 ≥2 人或包含多个部门标签，按 “多人 / 多部门周报” 模式处理。
+2. 岗位职责为主线（极其重要）：
+   - 每位成员数据开头标注了【岗位职责】，**必须**以此为归类与评判主线。
+   - 把该成员的每项工作归入对应职责板块，优先呈现与核心职责直接相关、能体现岗位价值的成果与计划；对明显偏离本职、属于协助性或临时性的内容，单独归入「其他／支持性工作」并弱化处理。
+   - **必须**在每个成员内容末尾给出一句「职责覆盖情况」小结（说明其本周主要覆盖了哪些核心职责、哪些职责暂无相关进展）。
+   - 严禁把职责描述本身当作已完成的任务来写。
+3. 智能归类合并规则（在岗位职责框架下，进一步按项目归类）：
+   - 撰写 “核心成果” 时，必须将性质相似的任务归并，但严禁把不同项目、不同客户的独立事项强行合并。
+   - 归类优先级：
+   第一优先级：以【岗位职责】为组织主线，每位成员的内容归入其职责板块。
+   第二优先级：在职责板块内，按独立项目 / 客户归类（如 “laughing 哥项目”“金蝶 ERP PO 商品利润表优化”“梁峰供应链提速方案”）。
+   第三优先级：零散的系统操作、数据导出、信息录入等常规事务，统一归入 “系统运维与数据支持”。
+   第四优先级：同板块下若涉及不同部门，可分条列出保持清晰。
+   - 板块命名铁规：标签必须准确反映任务的实际工作内容，不能为了显得重要而拔高用词。只有当任务确实涉及合规审查、政策应对等实质性工作时，才可使用 “合规支持”；只有当任务涉及跨部门业务流程协调、需求对接等实质性协作时，才可使用 “业务支持”。
+   - 核心成果总数控制在 3-6 条。
+4. 核心成果只写有明确结果的最终交付；问题与卡点聚焦阻塞项，不堆砌。
+
+【输出结构及样式】
+
+{typeName}（{from} ~ {to}）
+
+一、本 {unit} 核心成果
+按以下格式，每条独立成行，项目 / 板块名加粗：
+✅ **项目或板块名称**：具体成果描述
+✅ **项目或板块名称**：具体成果描述
+
+二、问题与卡点
+格式：⬜ **任务名称** — 当前状态，卡点原因
+多人多部门模式下，只列出有实际卡点的部门或事项。
+
+三、{nextUnit} 计划
+格式：🔄 **任务名称** — 计划推进动作
+仅从 “进行中” 或 “结果未填写” 的任务中提取。
+
+四、职责覆盖情况
+对每位成员，用一句话说明其本周主要覆盖了哪些核心职责、哪些职责暂无相关进展（与开头【岗位职责】呼应）。
+
+【全篇铁规】
+
+- 每条成果用简短完整句，直接点明交付了什么、给谁、有什么用。
+- 不同项目 / 客户的工作必须分条呈现，不可合并。
+- 岗位职责是评判“该写什么、突出什么、弱化什么”的主线依据，不得无视。
+- 所有内容必须能追溯到原始日报数据，不得主观发挥。
+- 多人多部门模式下，绝不出现 “本周无日报信息”“数据缺失” 等占位行。
+- ⛔ 硬性字数限制：全篇报告总字数严格控制在 500 字以内（含标点，不含占位符）。超出则必须继续删减，优先保留交付结果、关键卡点与跨部门资源需求，砍掉铺垫与空话。`;
+
+/* 月报模板：在周报基础上补全「月度」专属结构——更长周期需聚合提炼、突出里程碑与趋势 */
+const REPORT_PROMPT_TPL_MONTHLY =
+`请根据以下原始日报数据，生成一份 {typeName}（月度汇总，覆盖 {from} 至 {to} 的全部日报）。
+
+⚠️ 与周报不同：月报时间跨度长、数据量大，应做**聚合与提炼**，而非逐日罗列。以"职责板块 / 项目"为主线归纳本月整体进展，突出里程碑、关键成果与趋势，弱化零散日常事务。
+
+===== 原始日报数据（严格基于以下内容生成，不得编造数据之外的内容）=====
+{corpus}
+===== 数据结束 =====
+
+⚠️ 重要：原始数据中每位成员开头已标注其【岗位职责】。请以此为主线组织该成员的全部内容——按职责板块归类其成果与计划，并在成员小结中说明其本月对核心职责的覆盖情况。岗位职责是评判"该写什么、突出什么、弱化什么"的唯一依据。
+
+请严格按以下结构输出：
+
+# {typeName}（{from} ~ {to}）
+
+## 一、本月概览
+- 用 3-5 句话概括本月整体工作重心与最关键进展（基于数据，不空泛）
+- 点出本月达成的关键里程碑（如有）
+
+## 二、{unit}核心成果（按职责 / 项目板块归类）
+- 按职责板块或项目归类，提炼 6-10 条本月关键成果；突出有代表性的进展、里程碑与可量化结果
+- 每条格式：✅ **【板块】任务名** — 本月进展/结果（引用原始 Result 字段；跨多日推进的可合并叙述）
+- 对需要多周持续投入的事项，说明本月整体推进到了什么阶段
+- 若本月没有任何"已完成"的任务，如实写：本月暂无已记录完成的任务
+
+## 三、问题与风险
+- 汇总本月出现的未完成、被阻塞、反复出现或需协调跟进的事项
+- 标注风险趋势（如持续阻塞 / 临近节点 / 需跨部门支持）
+- 格式：⬜ **【板块】任务名** — 当前状态 + 卡点原因/风险说明
+- 严禁把"汇报对象（PLS REPORT TO）"当作卡点来源或任务
+
+## 四、{nextUnit}计划
+- 仅从以下两类事项自然延伸：① 标记为"进行中"的任务 ② 标记为"结果未填写"的任务
+- 以目标/重点为主线列出下月关键推进方向，而非任务流水
+- 格式：🔄 **方向/任务名** — 计划推进动作
+- 🚫 严禁新增原始数据中未提及的任务
+- 若本月无"进行中"也无"结果未填写"的事项，写：下月无明确待跟进事项
+
+## 五、成员职责覆盖小结
+- 对每位成员，用一句说明其本月主要覆盖了哪些核心职责、哪些职责暂无相关进展（与开头【岗位职责】呼应）
+
+---
+宁可写得少而准，也不要为凑篇幅写空话。所有内容必须引用原始数据。
+⛔ 硬性字数限制：全篇报告总字数严格控制在 500 字以内（含标点，不含占位符）。超出则必须继续删减，优先保留关键成果、风险趋势与下月重点，砍掉铺垫与空话。`;
+
+const DEFAULT_WEEKLY_PROMPT = REPORT_PROMPT_TPL;
+const DEFAULT_MONTHLY_PROMPT = REPORT_PROMPT_TPL_MONTHLY;
+
+/** 当前登录用户是否管理员：基于不可篡改的 union_id（不再用可改的昵称） */
+function isAdmin(){
+  const uid = authUnionId();
+  if(!uid) return false;
+  const adminUnion = localStorage.getItem(LS.adminUnion);
+  return !!adminUnion && uid === adminUnion;
+}
+/** 当前登录用户不可篡改的身份标识（钉钉 unionId）；未登录返回 null */
+function authUnionId(){
+  try {
+    const raw = localStorage.getItem(LS.dtUser);
+    if(!raw) return null;
+    const u = JSON.parse(raw);
+    return u && (u.unionId || u.union_id) ? (u.unionId || u.union_id) : null;
+  } catch(e){ return null; }
+}
+
+/** 根据管理员身份显示/隐藏「设置」导航项 */
+function updateSettingsNav(){
+  const nav = document.querySelector('.nav-item[data-page="settings"]');
+  if(nav) nav.classList.toggle('hidden', !isAdmin());
+}
+
+/* ---------- 隐私政策与用户同意 ---------- */
+function openPrivacy(){
+  const m = document.getElementById('privacyModal');
+  if(!m) return;
+  m.dataset.view = '1';           // 查看模式：允许关闭
+  m.classList.remove('hidden');
+}
+function closePrivacy(){
+  const m = document.getElementById('privacyModal');
+  if(!m) return;
+  if(m.dataset.view === '1') m.classList.add('hidden');  // 仅查看模式可关闭；首次同意前不可跳过
+}
+function acceptPrivacy(){
+  localStorage.setItem('sdr_privacy_consent', '1');
+  localStorage.setItem('sdr_privacy_consent_at', new Date().toISOString());
+  const m = document.getElementById('privacyModal');
+  if(m) m.classList.add('hidden');
+  logAudit('privacy_consent', { at: new Date().toISOString() });
+}
+
+/* ---------- 操作审计日志 ---------- */
+/** 写入一条审计记录（非阻塞；仅登录后有效，RLS 限制只能写本人 union_id） */
+async function logAudit(action, detail){
+  try{
+    const dtRaw = localStorage.getItem(LS.dtUser);
+    const uid = dtRaw ? (JSON.parse(dtRaw).unionId || JSON.parse(dtRaw).union_id) : null;
+    if(!uid || !supa) return;
+    await supa.from('audit_log').insert({ union_id: uid, action, detail: detail || null });
+  }catch(e){ /* 审计失败不影响主流程 */ }
+}
+/** 管理员读取最近审计（普通成员因 RLS 无数据） */
+async function loadAuditLog(){
+  const card = document.getElementById('auditCard');
+  if(!isAdmin()){ if(card) card.classList.add('hidden'); return; }
+  if(card) card.classList.remove('hidden');
+  const el = document.getElementById('auditList');
+  if(!supa){ if(el) el.innerHTML = '<span style="color:var(--muted)">未连接云端</span>'; return; }
+  try{
+    const {data, error} = await supa.from('audit_log')
+      .select('union_id,action,detail,created_at')
+      .order('created_at', { ascending: false }).limit(50);
+    if(error || !data){ if(el) el.innerHTML = '<span style="color:var(--muted)">读取失败</span>'; return; }
+    if(!data.length){ if(el) el.innerHTML = '<span style="color:var(--muted)">暂无记录</span>'; return; }
+    el.innerHTML = data.map(r =>
+      `<div style="padding:6px 0;border-bottom:1px solid var(--border)">[${esc((r.created_at||'').replace('T',' ').slice(0,19))}] <b>${esc(r.action)}</b> · ${esc(r.union_id||'')}${r.detail ? ' · ' + esc(JSON.stringify(r.detail)) : ''}</div>`
+    ).join('');
+  }catch(e){ if(el) el.innerHTML = '<span style="color:var(--muted)">读取失败</span>'; }
+}
+const LS = {
+  supaUrl:'sdr_supa_url', supaKey:'sdr_supa_key',
+  dsKey:'sdr_ds_key', dsModel:'sdr_ds_model',
+  weeklyPrompt:'sdr_weekly_prompt', monthlyPrompt:'sdr_monthly_prompt',
+  userName:'sdr_user', draft:'sdr_draft', localData:'sdr_local_reports',
+  dtToken:'sdr_dt_token',   // 钉钉登录后的 JWT
+  dtUser:'sdr_dt_user',     // 钉钉用户信息 {nick, unionId}
+  adminUnion:'sdr_admin_union',      // 管理员 union_id（来自 app_config，登录后拉取）
+  dtCalToken:'sdr_dt_cal_token',     // 钉钉用户级令牌（日历 API 用）
+  dtCalRefresh:'sdr_dt_cal_refresh', // 刷新令牌
+  dtCalUnion:'sdr_dt_cal_union',     // 授权用户的 unionId
+  dtCalExpire:'sdr_dt_cal_expire'    // 过期时间戳(ms)，用于判断是否需要刷新
+};
+let supa = null;          // supabase client
+let currentResult = '';   // 最近生成的报告文本
+
+/* ---------- 初始化 ---------- */
+async function init(){
+  // 日期默认今天
+  const today = todayStr();
+  document.getElementById('repDate').value = today;
+
+  // 生成任务行（默认 10 行，可随粘贴/数据动态增加）
+  for(let i=1;i<=TASKS;i++){ addTaskRow(); }
+
+  // 恢复用户名（来自标题横杠或钉钉登录）
+  restoreUser();
+
+  // 恢复今天的草稿
+  restoreTodayDraft();
+
+  // 事件绑定【最先执行】：即使后续初始化某步出错，提交/导航等按钮也始终可用
+  bindEvents();
+
+  // 载入配置（出错不阻断其余初始化）
+  try { await loadConfigs(); } catch(e){ console.error('[init] loadConfigs', e); }
+  // 连接 supabase（出错不阻断）。必须 await，确保全局 supa 在 populateRepToOptions() 之前就绪，
+  // 否则重载时「直属上级」下拉可能偶发为空（初始化顺序问题）
+  try { await connectSupabase(); } catch(e){ console.error('[init] connectSupabase', e); }
+  // 检查是否有钉钉回调（URL 带 ?code=xxx）
+  try { handleDingtalkCallback(); } catch(e){ console.error('[init] handleDingtalkCallback', e); }
+
+  // 默认进入登录页（未登录）或填写页（已登录）
+  if(localStorage.getItem(LS.dtToken)){
+    switchPage('fill');
+  } else {
+    switchPage('login');
+  }
+  // 打开后若当天没有未提交草稿，自动带出当天已提交的日报
+  if(!getDrafts()[todayStr()]){
+    setTimeout(onDateChange, 400);
+  }
+  // 加载汇报对象可选列表（取已提交日报的成员昵称）
+  populateRepToOptions();
+  // 已登录则从云端拉取设置（API Key 等），保证换设备可用
+  loadUserSettings();
+  // 已登录用户：后台静默检测 JWT 是否过期，过期则提前提示
+  if(localStorage.getItem(LS.dtToken)){
+    checkSessionValid().then(valid=>{
+      if(!valid) promptRelogin('登录状态已失效（可能超过有效期）');
+    });
+  }
+  // 初始化任务行拖拽排序
+  initTaskSortable();
+
+  // 隐私政策：首次使用（本地未记录同意）则强制弹窗要求阅读同意
+  const pm = document.getElementById('privacyModal');
+  if(pm){
+    if(!localStorage.getItem('sdr_privacy_consent')) pm.classList.remove('hidden');
+    else pm.classList.add('hidden');
+  }
+}
+
+/* ---------- 任务行：动态增删，支持表格批量粘贴 ---------- */
+/** 追加一行任务输入框，返回该行序号（1 起） */
+function addTaskRow(){
+  const tb=document.getElementById('taskBody');
+  const i=tb.children.length+1;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td class="tnum"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></td>
+    <td><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="2"></textarea></td>
+    <td class="col-res"><textarea class="t-res" data-i="${i}" placeholder="完成情况..." rows="2"></textarea></td>`;
+  tb.appendChild(tr);
+  // 绑定草稿自动保存（动态行也要生效）
+  tr.querySelectorAll('textarea').forEach(t=>t.addEventListener('input',saveDraft));
+  return i;
+}
+/** 当前任务行数 */
+function taskRowCount(){ return document.getElementById('taskBody').children.length; }
+/** 确保至少有 n 行（不够则追加） */
+function ensureTaskRows(n){ while(taskRowCount()<n) addTaskRow(); }
+
+/* ---------- 任务行拖拽排序（SortableJS，支持鼠标 + 手机触摸） ---------- */
+/** 拖动结束后，按新的 DOM 顺序重排序号显示与 data-i 标记 */
+function renumberTasks(){
+  const tb=document.getElementById('taskBody');
+  Array.from(tb.children).forEach((tr,idx)=>{
+    const n=idx+1;
+    const nt=tr.querySelector('.tnum-text'); if(nt) nt.textContent=n;
+    const de=tr.querySelector('.t-desc'); if(de) de.setAttribute('data-i',n);
+    const re=tr.querySelector('.t-res'); if(re) re.setAttribute('data-i',n);
+  });
+}
+/** 初始化任务表拖拽（手柄触发；触摸端长按 120ms 避免与滚动冲突） */
+function initTaskSortable(){
+  const tb=document.getElementById('taskBody');
+  if(!tb || typeof Sortable==='undefined') return;
+  new Sortable(tb,{
+    handle:'.drag-handle',
+    animation:150,
+    delay:120,
+    delayOnTouchOnly:true,
+    ghostClass:'sortable-ghost',
+    chosenClass:'sortable-chosen',
+    dragClass:'sortable-drag',
+    onEnd:function(){ renumberTasks(); saveDraft(); }
+  });
+}
+
+/**
+ * 批量粘贴：从 Excel / 钉钉表格 / 飞书表格 复制的多行文本，
+ * 按制表符分两列（描述 / 结果），逐行填入，行数不足自动增补。
+ */
+function onTaskPaste(e){
+  const cd=e.clipboardData||window.clipboardData;
+  if(!cd) return;
+  const text=cd.getData('text/plain');
+  if(!text) return;
+  const hasTab=text.includes('\t');
+  const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  // 保留「至少有一列非空」的行（允许某行只有结果）
+  const rows=lines.filter(l=>l.split('\t').some(c=>c.trim()!==''));
+  if(rows.length===0) return;
+  // 单行且无制表符 → 当作普通文本，交给浏览器默认粘贴
+  if(rows.length===1 && !hasTab) return;
+
+  e.preventDefault();
+  // 起始行：粘贴所在的行（0 起）
+  let start=0;
+  const tr=e.target.closest && e.target.closest('tr');
+  if(tr && tr.parentNode){ start=Array.prototype.indexOf.call(tr.parentNode.children, tr); }
+
+  ensureTaskRows(start+rows.length);
+  rows.forEach((line,k)=>{
+    const cols=line.split('\t');
+    const r=start+k;
+    const de=document.querySelector(`#taskBody tr:nth-child(${r+1}) .t-desc`);
+    const re=document.querySelector(`#taskBody tr:nth-child(${r+1}) .t-res`);
+    if(de) de.value=(cols[0]||'').trim();
+    if(re) re.value=(cols[1]||'').trim();
+  });
+  saveDraft();
+  const lastRe=document.querySelector(`#taskBody tr:nth-child(${start+rows.length}) .t-res`);
+  if(lastRe) lastRe.focus();
+  toast(`✅ 已粘贴 ${rows.length} 行任务`);
+}
+
+/** 恢复用户身份：优先钉钉登录信息，其次 localStorage 手动填的名字 */
+function restoreUser(){
+  const dtUserStr = localStorage.getItem(LS.dtUser);
+  const dtToken = localStorage.getItem(LS.dtToken);
+  if(dtToken && dtUserStr){
+    try{
+      const u = JSON.parse(dtUserStr);
+      document.getElementById('tplName').value = u.nick || 'I';
+      syncAvatar(u.nick);
+      updateDtLoginBtn(true, u.nick);
+      return;
+    }catch(e){}
+  }
+  // 降级：从 localStorage 取手动填过的名字
+  const u = localStorage.getItem(LS.userName);
+  if(u){ document.getElementById('tplName').value=u; syncAvatar(u); }
+}
+
+function bindEvents(){
+  // 导航
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.onclick=()=>switchPage(n.dataset.page);
+  });
+  // 姓名（来自标题横杠）同步头像与记忆
+  const tn=document.getElementById('tplName');
+  tn.oninput=()=>{
+    // 如果已通过钉钉登录，不允许修改（钉钉昵称为准）
+    if(localStorage.getItem(LS.dtToken)) return;
+    localStorage.setItem(LS.userName,tn.value);
+    syncAvatar(tn.value);
+  };
+  // 草稿自动保存（按当前日期即时写入，切换日期不丢其他天的内容）
+  // 排除日期框：日期切换由 onDateChange 单独处理，避免把旧日期内容误存到新日期
+  document.querySelectorAll('#page-fill input:not(#repDate),#page-fill textarea').forEach(el=>{
+    el.addEventListener('input',saveDraft);
+  });
+  // 切换日期：带出该日已提交的日报，可修改后重新提交覆盖
+  const repDateEl=document.getElementById('repDate');
+  if(repDateEl) repDateEl.addEventListener('change', onDateChange);
+  // 汇报对象下拉：选「其他」时显示手动输入框
+  const repToEl=document.getElementById('repTo');
+  if(repToEl) repToEl.addEventListener('change',()=>{
+    const other=document.getElementById('repToOther');
+    if(repToEl.value==='__other__' && other){ other.classList.remove('hidden'); other.focus(); }
+    else if(other){ other.classList.add('hidden'); other.value=''; }
+    saveDraft();
+  });
+  // 任务表：支持从 Excel / 钉钉表格 批量粘贴
+  const tbEl=document.getElementById('taskBody');
+  if(tbEl) tbEl.addEventListener('paste', onTaskPaste);
+}
+
+function syncAvatar(name){
+  document.getElementById('avatar').textContent = name? name.trim().charAt(0).toUpperCase() : '?';
+}
+
+function switchPage(p){
+  const sidebar = document.querySelector('.sidebar');
+  // 非管理员禁止进入设置页
+  if(p==='settings' && !isAdmin()){
+    toast('🔒 设置页仅管理员可见');
+    return;
+  }
+  if(p==='login'){
+    sidebar.classList.add('hidden');
+    document.body.classList.add('login-visible');
+  } else {
+    sidebar.classList.remove('hidden');
+    document.body.classList.remove('login-visible');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));
+  }
+  ['login','fill','list','generate','settings'].forEach(x=>{
+    const el=document.getElementById('page-'+x);
+    if(el) el.classList.toggle('hidden',x!==p);
+  });
+  if(p==='list') loadReports();
+  if(p==='generate'){ populatePersonSelects(); quickRange('week'); }
+  if(p==='settings'){ loadTeamMembers(); loadUserSettings(); loadAuditLog(); }
+}
+
+/* ============================================================
+ *  钉钉登录
+ * ============================================================ */
+
+/**
+ * 启动钉钉 OAuth2 登录流程：
+ *   1. 先向 Edge Function 获取 client_id（避免前端硬编码）
+ *   2. 构造授权 URL 并跳转
+ *   3. 钉钉回调带 code 回到本页
+ *   4. handleDingtalkCallback() 接收 code 并换取用户信息+JWT
+ */
+async function startDingtalkLogin(){
+  const supaUrl = getSupaUrl();
+  if(!supaUrl){ toast('⚠️ 请先在设置里配置 Supabase URL'); switchPage('settings'); return; }
+
+  // 登录页与填写页各有一个登录按钮，统一置为「连接中」
+  const btns = document.querySelectorAll('.dt-login-btn:not(.dt-logged-in)');
+  btns.forEach(b=>{ b.disabled = true; b.textContent = '⏳ 连接中...'; });
+
+  try {
+    // Step 1: 从 Edge Function 获取 client_id
+    const configRes = await fetch(`${supaUrl}/functions/v1/dingtalk-auth/config`);
+    if(!configRes.ok) throw new Error('无法获取钉钉配置');
+    const config = await configRes.json();
+    const clientId = config.client_id;
+    if(!clientId) throw new Error('服务端未配置钉钉 AppKey');
+
+    // Step 2: 构造授权 URL 并跳转（用纯域名作为 redirect_uri，便于在钉钉登记）
+    const callbackUrl = window.location.origin;
+    const state = crypto.randomUUID(); // CSRF 防护
+    localStorage.setItem('dt_state', state);
+
+    const authUrl = new URL('https://login.dingtalk.com/oauth2/auth');
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', callbackUrl);
+    authUrl.searchParams.set('scope', 'openid');
+    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('prompt', 'consent');
+
+    toast('正在跳转到钉钉...');
+    window.location.href = authUrl.toString();
+
+  } catch(e) {
+    toast('❌ '+e.message);
+    btns.forEach(b=>{ b.disabled = false; b.textContent = '🔵 钉钉登录'; });
+  }
+}
+
+/** 发起钉钉日历授权（scope 含 qyapi_calendar），授权后回调自动导入 */
+async function startCalendarAuth(){
+  try {
+    const configRes = await fetch(`${getSupaUrl()}/functions/v1/dingtalk-auth/config`);
+    if(!configRes.ok) throw new Error('无法获取钉钉配置');
+    const config = await configRes.json();
+    const clientId = config.client_id;
+    if(!clientId) throw new Error('服务端未配置钉钉 AppKey');
+    const callbackUrl = window.location.origin;
+    const state = 'calendar_' + crypto.randomUUID();
+    localStorage.setItem('dt_state_calendar', state);
+    const authUrl = new URL('https://login.dingtalk.com/oauth2/auth');
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', callbackUrl);
+    authUrl.searchParams.set('scope', 'openid Calendar.Calendar.Read Calendar.Event.Read');
+    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('prompt', 'consent');
+    toast('正在跳转到钉钉授权读取日历...');
+    window.location.href = authUrl.toString();
+  } catch(e) {
+    toast('❌ '+e.message);
+  }
+}
+
+/** 从钉钉日历导入所选日期的日程到任务描述（结果列留空待补） */
+async function importFromCalendar(){
+  const token = await decryptDevice(localStorage.getItem(LS.dtCalToken));
+  const unionId = localStorage.getItem(LS.dtCalUnion);
+  const jwt = await decryptDevice(localStorage.getItem(LS.dtToken));
+  const date = document.getElementById('repDate').value;
+  const calExpire = Number(localStorage.getItem(LS.dtCalExpire) || '0');
+  const justAuth = localStorage.getItem('dt_cal_just_auth');
+  localStorage.removeItem('dt_cal_just_auth');
+  if(!token || !unionId || (calExpire && Date.now() > calExpire)){
+    // 未授权或令牌已过期 → 跳转授权（授权回来后会自动再调本函数）
+    toast('🔑 需要授权（或重新授权）读取钉钉日历，正在跳转...');
+    startCalendarAuth();
+    return;
+  }
+  if(!date){ toast('⚠️ 请先选择日期'); return; }
+  const btn = document.getElementById('calImportBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ 导入中...'; }
+  try {
+    // 通过 Edge Function 代理调用钉钉日历 API（避免浏览器 CORS 跨域限制）
+    const supaUrl = getSupaUrl();
+    if(!supaUrl) throw new Error('未连接 Supabase');
+    const res = await fetch(`${supaUrl}/functions/v1/dingtalk-auth/calendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+      body: JSON.stringify({ token, unionId, date })
+    });
+    if(!res.ok){
+      const t = await res.text().catch(()=>'');
+      // 404：日历列表为空或该账号下没有日历
+      if(res.status === 404){
+        try{
+          const jd=JSON.parse(t);
+          throw new Error(jd.error || '该账号下没有日历或获取失败');
+        }catch(e2){ if(e2.message) throw e2; throw new Error('请求失败 404'); }
+      }
+      if(res.status === 401 || res.status === 403 || (res.status >= 500 && res.status <= 599)){
+        // 服务端返回的 4xx/5xx 可能是钉钉令牌无效或无权限
+        if(justAuth){
+          try{ const jd=JSON.parse(t); throw new Error(jd.error||'授权后仍无法读取日历'); }catch(e2){ throw e2; }
+        }
+        localStorage.removeItem(LS.dtCalToken);
+        localStorage.removeItem(LS.dtCalUnion);
+        localStorage.removeItem(LS.dtCalExpire);
+        toast('🔑 日历令牌需重新授权，正在跳转...');
+        startCalendarAuth();
+        return;
+      }
+      throw new Error('请求失败 '+res.status+'：'+t.slice(0,200));
+    }
+    const result = await res.json();
+    if(!result.success) throw new Error(result.error || '未知错误');
+    const events = result.events || [];
+    if(!events.length){
+      toast('📭 '+date+' 当天钉钉日历没有日程');
+      if(btn){ btn.disabled = false; btn.textContent = '📅 从钉钉日历导入'; }
+      return;
+    }
+    // 3) 填入任务描述（从第一个空白行开始填，不覆盖已有任务）
+    const allDescs = Array.from(document.querySelectorAll('.t-desc'))
+      .sort((a,b)=> Number(a.getAttribute('data-i')) - Number(b.getAttribute('data-i')));
+    let ptr = 0;
+    events.forEach(ev=>{
+      const summary = ev.summary || ev.title || ev.subject || '（无标题日程）';
+      let tm = '';
+      const st = ev.start && (ev.start.dateTime || ev.start.date);
+      if(st){ const m = String(st).match(/T(\d{2}:\d{2})/); if(m) tm = m[1]; }
+      const text = tm ? `${summary}（${tm}）` : summary;
+      // 找下一个空白行（跳过已填内容的行）
+      let targetIdx = null;
+      while(ptr < allDescs.length){
+        const de = allDescs[ptr++];
+        if(!de.value || !de.value.trim()){ targetIdx = Number(de.getAttribute('data-i')); break; }
+      }
+      if(targetIdx === null) targetIdx = addTaskRow();
+      const de = document.querySelector(`.t-desc[data-i="${targetIdx}"]`);
+      if(de) de.value = text;
+    });
+    saveDraft();
+    toast(`✅ 已从钉钉日历导入 ${events.length} 条日程到任务描述（结果请手动补）`);
+  } catch(e) {
+    toast('❌ 导入失败：'+e.message);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '📅 从钉钉日历导入'; }
+  }
+}
+
+/** 处理钉钉回调：URL 中有 ?code=xxx 时触发（区分主登录 / 日历授权） */
+async function handleDingtalkCallback(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code') || params.get('authCode');  // 钉钉新版回调参数为 authCode
+  const state = params.get('state');
+  if(!code) return;
+
+  // 清理 URL（去掉 code 参数，防止刷新重复处理）
+  window.history.replaceState({}, '', window.location.pathname);
+
+  const loginState = localStorage.getItem('dt_state');
+  const calState = localStorage.getItem('dt_state_calendar');
+  const isCalendar = (calState && state && state === calState) || (state||'').startsWith('calendar_');
+  const isLogin = loginState && state && state === loginState;
+
+  // 状态校验：本地存有 state 但回跳 state 都不匹配 → 失败（跨环境丢失则放行）
+  if(loginState && calState && !isLogin && !isCalendar){
+    toast('❌ 授权状态校验失败，请重试'); return;
+  }
+
+  if(isCalendar){
+    localStorage.removeItem('dt_state_calendar');
+    await handleCalendarCallback(code);
+    return;
+  }
+
+  // ── 主登录流程 ──
+  if(loginState && state && state !== loginState){
+    toast('❌ 登录状态校验失败，请重试');
+    return;
+  }
+  localStorage.removeItem('dt_state');
+
+  toast('🔵 正在验证钉钉身份...');
+  const supaUrl = getSupaUrl();
+  if(!supaUrl){ toast('⚠️ 请先配置 Supabase'); return; }
+
+  try {
+    const res = await fetch(`${supaUrl}/functions/v1/dingtalk-auth/callback`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ code })
+    });
+
+    const result = await res.json();
+    if(!res.ok || !result.success) {
+      const detail = result.detail ? '（'+result.detail+'）' : '';
+      throw new Error((result.error || '登录失败') + detail);
+    }
+
+    localStorage.setItem(LS.dtToken, await encryptDevice(result.token));
+    localStorage.setItem(LS.dtUser, JSON.stringify(result.user));
+
+    // 拉取管理员 union_id（身份锚点，不再依赖可改的昵称）
+    try {
+      const cfgRes = await fetch(`${supaUrl}/functions/v1/dingtalk-auth/app-config`, {
+        method:'GET',
+        headers: { 'Authorization': 'Bearer ' + result.token }
+      });
+      const cfg = await cfgRes.json().catch(()=>({}));
+      if(cfg && cfg.adminUnion) localStorage.setItem(LS.adminUnion, cfg.adminUnion);
+    } catch(_) {}
+
+    const nick = result.user.nick || result.user.unionId;
+    document.getElementById('tplName').value = nick;
+    syncAvatar(nick);
+    updateDtLoginBtn(true, nick);
+    refreshSupabaseWithToken(result.token);
+    populateRepToOptions();
+    loadUserSettings();
+    if(!getDrafts()[todayStr()]){
+      onDateChange();
+    }
+    toast(`✅ 钉钉登录成功！你好，${nick}`);
+
+  } catch(e) {
+    toast('❌ 钉钉登录失败：'+ e.message);
+  }
+}
+
+/** 处理日历授权回调：换取并存储钉钉用户级令牌，随后自动导入 */
+async function handleCalendarCallback(code){
+  toast('🔵 正在验证日历授权...');
+  const supaUrl = getSupaUrl();
+  if(!supaUrl){ toast('⚠️ 请先配置 Supabase'); return; }
+  try {
+    const res = await fetch(`${supaUrl}/functions/v1/dingtalk-auth/callback`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ code })
+    });
+    const result = await res.json();
+    if(!res.ok || !result.success || !result.dingtalkToken){
+      throw new Error((result.error || '日历授权失败') + (result.detail ? '（'+result.detail+'）' : ''));
+    }
+    localStorage.setItem(LS.dtCalToken, await encryptDevice(result.dingtalkToken));
+    localStorage.setItem(LS.dtCalRefresh, await encryptDevice(result.dingtalkRefresh || ''));
+    localStorage.setItem(LS.dtCalUnion, result.user?.unionId || '');
+    const exp = (result.dingtalkExpireIn || 7200) * 1000;
+    localStorage.setItem(LS.dtCalExpire, String(Date.now() + exp));
+    toast('✅ 钉钉日历已授权，正在导入...');
+    localStorage.setItem('dt_cal_just_auth', '1');
+    await importFromCalendar();
+  } catch(e){
+    toast('❌ 日历授权失败：'+ e.message);
+  }
+}
+
+/** 更新钉钉登录按钮状态 */
+function updateDtLoginBtn(loggedIn, nick){
+  const btn = document.getElementById('dtLoginBtn');
+  const pn = document.getElementById('permNote');
+  const logoutBtn = document.getElementById('dtLogoutBtn');
+  const logoutWrap = document.getElementById('dtLogoutWrap');
+  updateSettingsNav();  // 根据是否管理员刷新设置入口
+  if(loggedIn){
+    btn.className = 'dt-login-btn dt-logged-in';
+    btn.innerHTML = `<span class="dt-name-tag">${esc(nick)}</span> ✓ 已登录`;
+    btn.onclick = null;
+    if(logoutBtn) logoutBtn.classList.remove('hidden');
+    if(logoutWrap) logoutWrap.classList.remove('hidden');
+    // 设置页状态更新
+    const st = document.getElementById('dtStatus');
+    if(st) st.innerHTML = '<span style="color:var(--ok)">✅ 已登录为 '+esc(nick)+'</span>';
+    // 权限提示：管理员可见全部，普通成员仅见自己+汇报给自己的
+    if(pn){
+      if(isAdmin()){
+        pn.innerHTML = '👑 管理员身份：<b>'+esc(nick)+'</b> · 可见<b>全部成员</b>的日报';
+      } else {
+        pn.innerHTML = '🔒 当前身份：<b>'+esc(nick)+'</b> · 可见：自己的日报 + 向 <b>'+esc(nick)+'</b> 汇报的人的日报';
+      }
+    }
+    switchPage('fill');  // 登录成功后进入主界面
+  } else {
+    btn.className = 'dt-login-btn';
+    btn.innerHTML = '🔵 钉钉登录';
+    btn.onclick = startDingtalkLogin;
+    if(logoutBtn) logoutBtn.classList.add('hidden');
+    if(logoutWrap) logoutWrap.classList.add('hidden');
+    if(pn) pn.innerHTML = '提示：请先点击右上角「钉钉登录」，才能查看你有权限的日报';
+  }
+}
+
+/** 退出钉钉登录：清除本地会话，回到未登录状态 */
+function logoutDingtalk(){
+  localStorage.removeItem(LS.dtToken);
+  localStorage.removeItem(LS.dtUser);
+  // 重置界面为未登录
+  document.getElementById('tplName').value = 'I';
+  syncAvatar('');
+  updateDtLoginBtn(false);
+  switchPage('login');  // 退出后回到登录页
+  // 用 anon key 重建 Supabase 客户端（去掉登录身份）
+  const url = getSupaUrl();
+  const key = getSupaKey();
+  if(url && key){ supa = createClient(url, key); }
+  // 刷新列表（此时无权限，列表会变空并提示登录）
+  if(document.getElementById('page-list') && !document.getElementById('page-list').classList.contains('hidden')){
+    loadReports();
+  }
+  toast('🚪 已退出钉钉登录');
+}
+
+/** 用钉钉 JWT 创建/刷新 Supabase 客户端 */
+function refreshSupabaseWithToken(token){
+  const url = getSupaUrl();
+  const key = getSupaKey();
+  if(url && key && window.supabase && token){
+    try {
+      supa = window.supabase.createClient(url, key, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+      });
+      document.getElementById('cfgBanner').classList.add('hidden');
+    } catch(e) { console.error('[dt] Supabase token refresh failed:', e); }
+  }
+}
+
+/** 检查当前 Supabase 会话是否有效（JWT 未过期）；返回 true=有效，false=已过期 */
+async function checkSessionValid(){
+  if(!supa) return false;
+  try{
+    // 轻量请求：只取一行，不拉数据，仅验证 JWT 是否被接受
+    const {error}=await supa.from('daily_reports').select('id').limit(1);
+    if(error && (error.message||'').includes('JWT expired')) return false;
+    return !error;  // 其他错误（网络等）不算过期，允许继续尝试提交
+  }catch(e){ return false; }
+}
+
+/** 引导用户重新登录钉钉（JWT 过期时调用） */
+function promptRelogin(reason){
+  toast('⚠️ '+reason+'，请点击右上角「🔵 钉钉登录」重新登录');
+  // 自动切换到填写页方便用户看到登录按钮
+  switchPage('fill');
+}
+
+/* ---------- 配置管理 ---------- */
+async function loadConfigs(){
+  document.getElementById('cfgUrl').value = getSupaUrl()||'';
+  document.getElementById('cfgKey').value = getSupaKey()||'';
+  const admin = isAdmin();
+  // 仅管理员解密显示全局 Key 明文（普通用户看不到 Key，避免误弹主密码）
+  if(admin){
+    document.getElementById('cfgDsKey').value = await decryptText(localStorage.getItem(LS.dsKey)||'');
+  }
+  document.getElementById('cfgDsModel').value = localStorage.getItem(LS.dsModel)||'deepseek-v4-pro';
+  const safePrompt = (v, def) => (!v || v.trim()==='' || v.trim()==='undefined') ? def : v;
+  document.getElementById('cfgWeeklyPrompt').value = safePrompt(localStorage.getItem(LS.weeklyPrompt), DEFAULT_WEEKLY_PROMPT);
+  document.getElementById('cfgMonthlyPrompt').value = safePrompt(localStorage.getItem(LS.monthlyPrompt), DEFAULT_MONTHLY_PROMPT);
+  // 管理员显示配置框；普通用户显示只读状态
+  const ab = document.getElementById('dsAdminBox');
+  const ub = document.getElementById('dsUserBox');
+  if(ab) ab.style.display = admin ? '' : 'none';
+  if(ub) ub.style.display = admin ? 'none' : '';
+}
+async function saveSupabaseCfg(){
+  localStorage.setItem(LS.supaUrl,document.getElementById('cfgUrl').value.trim());
+  localStorage.setItem(LS.supaKey,document.getElementById('cfgKey').value.trim());
+  await connectSupabase();
+  testConnection();
+  logAudit('settings_save', { item:'supabase' });
+}
+async function saveDeepSeekCfg(){
+  if(!isAdmin()){ toast('⚠️ 仅管理员可配置全局 Key'); return; }
+  const raw = document.getElementById('cfgDsKey').value.trim();
+  if(!raw){ toast('⚠️ 请输入 DeepSeek API Key'); return; }
+  const model = document.getElementById('cfgDsModel').value;
+  // 主密码：留空则自动生成强密码并显示给管理员转发
+  let pass = document.getElementById('cfgMasterPass').value.trim();
+  const showBox = document.getElementById('masterPassShow');
+  if(!pass){
+    pass = genStrongPass(16);
+    showBox.style.display='block';
+    showBox.innerHTML = '🔑 <b>已自动生成主密码，请复制并转发给团队：</b><br><code style="font-size:15px;word-break:break-all">'+pass+'</code><br><span style="color:var(--muted)">（此密码仅在此显示一次，用于全员跨设备解锁 Key；也可自行设定一个好记的主密码）</span>';
+  } else {
+    showBox.style.display='none';
+  }
+  // 用主密码派生密钥加密 Key（v2：随机盐内嵌 + 50万迭代，跨设备可解密）
+  const cipher = await encryptWithPass(pass, raw);
+  // 本机记住主密码（用设备密钥加密存储，不明文落盘），避免管理员自己也要再输一次
+  await rememberMasterPass(pass);
+  _masterPass = pass;
+  // 写云端（密文）
+  const supaUrl = getSupaUrl();
+  const jwt = await decryptDevice(localStorage.getItem(LS.dtToken));
+  try{
+    const res = await fetch(`${supaUrl}/functions/v1/dingtalk-auth/set-global-key`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+jwt },
+      body: JSON.stringify({ dsKey: cipher })
+    });
+    const r = await res.json().catch(()=>({}));
+    if(!res.ok || !r.success){ throw new Error(r.error||'保存失败'); }
+  }catch(e){ toast('❌ 保存全局 Key 失败：'+e.message); return; }
+  localStorage.setItem(LS.dsKey, cipher);
+  localStorage.setItem(LS.dsModel, model);
+  toast('✅ 全局 DeepSeek 配置已加密保存（全员可用）');
+  logAudit('settings_save', { item:'global_deepseek' });
+}
+function savePromptCfg(){
+  localStorage.setItem(LS.weeklyPrompt,document.getElementById('cfgWeeklyPrompt').value);
+  localStorage.setItem(LS.monthlyPrompt,document.getElementById('cfgMonthlyPrompt').value);
+  persistUserSettings();
+  toast('✅ 报告提示词已保存（已同步到云端）');
+  logAudit('settings_save', { item:'prompt' });
+}
+function resetPromptCfg(){
+  localStorage.removeItem(LS.weeklyPrompt);
+  localStorage.removeItem(LS.monthlyPrompt);
+  document.getElementById('cfgWeeklyPrompt').value = DEFAULT_WEEKLY_PROMPT;
+  document.getElementById('cfgMonthlyPrompt').value = DEFAULT_MONTHLY_PROMPT;
+  toast('↺ 已恢复默认提示词');
+}
+
+/* ---------- 设置云端同步（跨设备：手机/电脑通用）----------
+ * 原因：之前配置只存在 localStorage，换设备（如手机）就丢失，
+ * 导致「手机端生成周报提示没有 API Key」。现改为同时存到 user_settings 表，
+ * 登录后自动拉取，保存时自动写回。 */
+
+/** 从数据库拉取当前用户的设置，覆盖到 localStorage 并刷新设置页表单 */
+async function loadUserSettings(){
+  const dtRaw=localStorage.getItem(LS.dtUser);
+  let nick=null, uid=null;
+  if(dtRaw){ try{ const u=JSON.parse(dtRaw); nick=u.nick; uid=u.unionId||u.union_id; }catch(e){} }
+  if(!uid || !supa) return;
+  try{
+    // ① 全局 DeepSeek Key（密文）：从 /app-config 拉取，全员共用
+    try{
+      const jwt = await decryptDevice(localStorage.getItem(LS.dtToken));
+      const appRes = await fetch(`${getSupaUrl()}/functions/v1/dingtalk-auth/app-config`, {
+        method:'GET', headers:{ 'Authorization':'Bearer '+jwt }
+      });
+      const cfg = await appRes.json().catch(()=>({}));
+      if(cfg && cfg.dsKey) localStorage.setItem(LS.dsKey, cfg.dsKey);
+    }catch(e){ /* 拉取失败不影响其余个人设置 */ }
+
+    // ② 个人设置（模型 / 提示词）仍按 union_id 读取
+    let {data,error}=await supa
+      .from('user_settings')
+      .select('ds_model,weekly_prompt,monthly_prompt')
+      .eq('union_id',uid)
+      .maybeSingle();
+    // 兼容：旧数据可能只有 nick、union_id 为空，回退按 nick 读取
+    if((!data || error) && nick){
+      const r=await supa.from('user_settings')
+        .select('ds_model,weekly_prompt,monthly_prompt')
+        .eq('nick',nick).maybeSingle();
+      data=r.data; error=r.error;
+    }
+    if(error && error.code!=='PGRST116'){ console.warn('[settings] load failed', error); return; }
+    if(data){
+      if(data.ds_model)      localStorage.setItem(LS.dsModel, data.ds_model);
+      if(data.weekly_prompt) localStorage.setItem(LS.weeklyPrompt, data.weekly_prompt);
+      if(data.monthly_prompt)localStorage.setItem(LS.monthlyPrompt, data.monthly_prompt);
+      const sp=document.getElementById('page-settings');
+      if(sp && !sp.classList.contains('hidden')) await loadConfigs();
+    }
+  }catch(e){ console.warn('[settings] load error', e); }
+}
+
+/** 把当前 localStorage 中的设置写回数据库（云端同步） */
+async function persistUserSettings(){
+  const dtRaw=localStorage.getItem(LS.dtUser);
+  let nick=null, uid=null;
+  if(dtRaw){ try{ const u=JSON.parse(dtRaw); nick=u.nick; uid=u.unionId||u.union_id; }catch(e){} }
+  if(!uid || !supa) return;
+  try{
+    const {error}=await supa.from('user_settings').upsert({
+      nick,
+      union_id:     uid,
+      ds_model:      localStorage.getItem(LS.dsModel)||'deepseek-v4-pro',
+      weekly_prompt: localStorage.getItem(LS.weeklyPrompt)||'',
+      monthly_prompt:localStorage.getItem(LS.monthlyPrompt)||'',
+      updated_at:    new Date().toISOString()
+    });
+    if(error) console.warn('[settings] persist failed', error);
+  }catch(e){ console.warn('[settings] persist error', e); }
+}
+
+/** 读取团队成员名单+岗位职责到设置页文本框（格式：昵称 ｜ 职责） */
+async function loadTeamMembers(){
+  const ta=document.getElementById('cfgTeamMembers'); if(!ta) return;
+  const msg=document.getElementById('tmMsg');
+  try{
+    if(supa){
+      // 尝试连 duty 一起读；若表还没有 duty 列则降级只读 name
+      let {data,error}=await supa.from('team_members').select('name,duty').order('name');
+      if(error && /duty/.test(error.message||'')){
+        const r=await supa.from('team_members').select('name').order('name');
+        data=r.data; error=r.error;
+      }
+      if(!error&&data){
+        ta.value=data.map(r=>r.duty?`${r.name} ｜ ${r.duty}`:r.name).join('\n');
+        if(msg)msg.textContent='已读取 '+data.length+' 名成员';
+      }
+      else if(error&&msg){ msg.textContent='读取失败：'+error.message; }
+    }else if(msg){ msg.textContent='未连接云端，无法读取名单'; }
+  }catch(e){ if(msg)msg.textContent='读取失败：'+e.message; }
+}
+
+/** 保存团队成员名单+岗位职责（仅管理员；先清空再写入。分隔符支持中文｜和英文|、制表符） */
+async function saveTeamMembers(){
+  const ta=document.getElementById('cfgTeamMembers'); if(!ta) return;
+  const msg=document.getElementById('tmMsg');
+  const dtRaw=localStorage.getItem(LS.dtUser); const dtUser=dtRaw?JSON.parse(dtRaw):null;
+  if(!dtUser || !isAdmin()){ toast('⚠️ 仅管理员可维护成员名单'); return; }
+  if(!supa){ toast('⚠️ 未连接云端'); return; }
+  // 解析每行：昵称 ｜ 职责（分隔符 ｜ / | / Tab 均可）
+  const rows=ta.value.split('\n').map(s=>s.trim()).filter(Boolean).map(line=>{
+    const parts=line.split(/[｜|\t]/);
+    const name=(parts[0]||'').trim();
+    const duty=parts.slice(1).join('｜').trim();
+    return name?{name,duty:duty||null}:null;
+  }).filter(Boolean);
+  // 去重（同名保留最后一条）
+  const seen={}; rows.forEach(r=>seen[r.name]=r);
+  const list=Object.values(seen);
+  try{
+    // 逐行 upsert（按 name 更新 duty），保留已有的 union_id（不删除全表，避免清空身份锚点）
+    for(const r of list){
+      const {data:ex}=await supa.from('team_members').select('id').eq('name',r.name).maybeSingle();
+      let ie=null;
+      if(ex){
+        const {error}=await supa.from('team_members').update({duty:r.duty}).eq('id',ex.id);
+        ie=error;
+      }else{
+        const {error}=await supa.from('team_members').insert({name:r.name, duty:r.duty});
+        ie=error;
+      }
+      if(ie){ toast('⚠️ 写入失败：'+ie.message); return; }
+    }
+    // 仅清理「手动维护（union_id 为空）且不在文本框中」的成员；
+    // 已同步通讯录的成员带有 union_id（身份锚点），永不因保存名单而被删除，
+    // 否则会丢失 report_to_union 所需的经理↔下属身份映射，导致上级看不见下属日报
+    const names=list.map(r=>r.name);
+    let delQ = supa.from('team_members').delete().is('union_id', null);
+    if(names.length){
+      delQ = delQ.not('name','in',`(${names.map(n=>JSON.stringify(n)).join(',')})`);
+    }
+    const {error:de} = await delQ;
+    if(de) console.warn('[tm] 清理旧成员失败', de.message);
+    if(msg)msg.textContent='已保存 '+list.length+' 名成员';
+    toast('✅ 成员与职责已保存');
+    logAudit('settings_save', { item:'team_members', count: list.length });
+    populateRepToOptions();
+  }catch(e){ toast('⚠️ 保存失败：'+e.message); }
+}
+
+/** 同步通讯录成员 unionId（由后端遍历钉钉通讯录填充 team_members.union_id） */
+async function syncTeamMembers(){
+  const msg=document.getElementById('tmMsg');
+  if(!supa){ toast('⚠️ 未连接云端'); return; }
+  if(!isAdmin()){ toast('⚠️ 仅管理员可同步'); return; }
+  toast('🔄 正在同步通讯录 unionId...');
+  try{
+    const supaUrl=getSupaUrl();
+    const jwt=await decryptDevice(localStorage.getItem(LS.dtToken));
+    const res=await fetch(`${supaUrl}/functions/v1/dingtalk-auth/sync-members`, {
+      method:'POST',
+      headers: { 'Authorization': 'Bearer ' + jwt }
+    });
+    const r=await res.json().catch(()=>({}));
+    if(!res.ok || !r.success){ throw new Error(r.error||'同步失败'); }
+    if(msg) msg.textContent=`✅ 已同步 ${r.synced} 名成员的 unionId（共 ${r.total} 条）`;
+    toast('✅ 通讯录 unionId 同步完成');
+    await logAudit('settings_save', { item:'sync_members', synced:r.synced });
+    populateRepToOptions();
+  }catch(e){ toast('❌ 同步失败：'+e.message); }
+}
+async function connectSupabase(){
+  const url=getSupaUrl(), key=getSupaKey();
+  const dtToken = await decryptDevice(localStorage.getItem(LS.dtToken));
+
+  if(url&&key&&window.supabase){
+    try{
+      if(dtToken){
+        // 有钉钉 token 时带上
+        supa = window.supabase.createClient(url, key, {
+          global: { headers: { Authorization: `Bearer ${dtToken}` } }
+        });
+      } else {
+        supa = window.supabase.createClient(url, key);
+      }
+      const banner=document.getElementById('cfgBanner');
+      if(banner) banner.classList.add('hidden');
+      return true;
+    }
+    catch(e){ console.error(e); }
+  }
+  supa=null;
+  const banner=document.getElementById('cfgBanner');
+  if(banner) banner.classList.remove('hidden');
+  return false;
+}
+async function testConnection(){
+  const st=document.getElementById('cfgStatus');
+  if(!supa){ st.innerHTML='<span style="color:var(--accent)">❌ 未配置或配置有误</span>'; return; }
+  st.innerHTML='🔌 测试中...';
+  const {error}=await supa.from('daily_reports').select('id').limit(1);
+  if(error){ st.innerHTML=`<span style="color:var(--accent)">❌ 连接失败：${error.message}<br>请确认已在 Supabase 建表（见部署指南）</span>`; }
+  else{ st.innerHTML='<span style="color:var(--ok)">✅ 连接成功！多人在线已启用</span>'; toast('✅ 云端连接成功'); }
+}
+
+/* ---------- 草稿（按日期分别保存，切换日期不丢数据） ---------- */
+function getDrafts(){
+  try{
+    const o=JSON.parse(localStorage.getItem(LS.draft)||'{}');
+    return (o&&typeof o==='object'&&!Array.isArray(o))?o:{};
+  }catch(e){ return {}; }
+}
+function hasAnyDraft(){ return Object.keys(getDrafts()).length>0; }
+function saveDraft(){
+  const d=collectForm();
+  if(!d.date) return;
+  const drafts=getDrafts();
+  drafts[d.date]=d;
+  localStorage.setItem(LS.draft, JSON.stringify(drafts));
+}
+function clearDraftForDate(date){
+  if(!date) return;
+  const drafts=getDrafts();
+  if(drafts[date]){ delete drafts[date]; localStorage.setItem(LS.draft, JSON.stringify(drafts)); }
+}
+/** 打开页面时恢复「今天」的未提交草稿（钉钉登录下不覆盖昵称） */
+function restoreTodayDraft(){
+  const d=getDrafts()[todayStr()];
+  if(!d) return;
+  if(!localStorage.getItem(LS.dtToken)) document.getElementById('tplName').value=d.tplName||'I';
+  setRepTo(d.reportTo||'');
+  (d.tasks||[]).forEach((t,i)=>{
+    ensureTaskRows(i+1);
+    const de=document.querySelector(`.t-desc[data-i="${i+1}"]`);
+    const re=document.querySelector(`.t-res[data-i="${i+1}"]`);
+    if(de)de.value=t.desc||''; if(re)re.value=t.result||'';
+  });
+  syncAvatar(document.getElementById('tplName').value);
+}
+function collectForm(){
+  const tasks=[];
+  document.querySelectorAll('#taskBody tr').forEach(tr=>{
+    const desc=tr.querySelector('.t-desc').value.trim();
+    const result=tr.querySelector('.t-res').value.trim();
+    tasks.push({desc,result});
+  });
+  const repToSel=document.getElementById('repTo');
+  const reportToUnion = repToSel && repToSel.selectedOptions && repToSel.selectedOptions[0]
+    ? (repToSel.selectedOptions[0].dataset.uid || '') : '';
+  return {
+    tplName:document.getElementById('tplName').value.trim()||'I',
+    date:document.getElementById('repDate').value,
+    reporter:document.getElementById('tplName').value.trim()||'I',
+    reportTo:collectRepTo(),
+    reportToUnion,
+    tasks
+  };
+}
+
+/* ---------- 提交日报 ---------- */
+async function saveReport(){
+  const d=collectForm();
+  // 解析汇报对象的 union_id：手动输入 / 下拉项缺 union_id 时，按昵称从 team_members 回填，
+  // 确保「上级看下属」权限（依赖 report_to_union = 上级 union_id）在各类情况下都生效
+  if(!d.reportToUnion && d.reportTo && supa){
+    d.reportToUnion = await resolveReportToUnion(d.reportTo);
+  }
+  if(!d.reporter || d.reporter === 'I'){ toast('⚠️ 请先填写你的名字（或点击「钉钉登录」自动获取）'); switchPage('fill'); return; }
+  const filled=d.tasks.filter(t=>t.desc||t.result);
+  if(filled.length===0){ toast('⚠️ 请至少填写一条任务'); return; }
+  if(!d.reportTo){ toast('⚠️ 请选择你的直属上级（PLS REPORT TO 必填）'); switchPage('fill'); return; }
+
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 提交中...';
+
+  // 身份校验：云端模式下必须以钉钉身份提交，否则 RLS 会拒绝
+  const dtRaw=localStorage.getItem(LS.dtUser);
+  const dtUser=dtRaw?JSON.parse(dtRaw):null;
+  if(supa && !dtUser){
+    toast('⚠️ 已启用云端数据库，请先点击右上角「钉钉登录」再提交日报'); btn.disabled=false; btn.innerHTML='💾 提交日报'; switchPage('fill'); return;
+  }
+  const authName=dtUser?dtUser.nick:d.reporter;
+  const authUnion=dtUser?(dtUser.unionId||dtUser.union_id):null;
+
+  const record={
+    user_name:authName, report_date:d.date, title:d.tplName,
+    report_to:d.reportTo, report_to_union:d.reportToUnion,
+    union_id:authUnion,
+    tasks:d.tasks.filter(t=>t.desc||t.result)
+  };
+
+  try{
+    if(supa){
+      // 先检查会话是否有效（JWT 可能已过期）
+      const valid=await checkSessionValid();
+      if(!valid){
+        promptRelogin('登录已过期');
+        return;
+      }
+      // 同一人同一天：先删后插（覆盖）。用不可篡改的 union_id 作过滤，确保 RLS 通过
+      await supa.from('daily_reports').delete().eq('union_id',authUnion).eq('report_date',d.date);
+      const {error}=await supa.from('daily_reports').insert(record);
+      if(error){
+        // JWT 过期特殊提示
+        if((error.message||'').includes('JWT expired')||error.code==='PGRST301'){
+          promptRelogin('登录已过期'); return;
+        }
+        throw error;
+      }
+      toast('✅ 日报已提交到云端');
+      logAudit('report_submit', { date: d.date, name: authName });
+    }else{
+      saveLocal(record);
+      toast('✅ 已保存到本机（未配置云端，仅本设备可见）');
+    }
+    clearDraftForDate(d.date);
+  }catch(e){
+    toast('❌ 提交失败：'+e.message);
+  }finally{
+    btn.disabled=false; btn.innerHTML='💾 提交日报';
+  }
+}
+
+function saveLocal(rec){
+  const arr=JSON.parse(localStorage.getItem(LS.localData)||'[]');
+  const idx=arr.findIndex(r=>r.user_name===rec.user_name&&r.report_date===rec.report_date);
+  rec.id=Date.now(); rec.created_at=new Date().toISOString();
+  if(idx>=0)arr[idx]=rec; else arr.push(rec);
+  localStorage.setItem(LS.localData,JSON.stringify(arr));
+}
+
+async function clearForm(){
+  if(!confirm('确定清空当前表单？'))return;
+  // 钉钉登录状态下不清除名字（由登录控制）
+  if(!localStorage.getItem(LS.dtToken)){
+    document.getElementById('tplName').value='I';
+  }
+  document.querySelectorAll('.t-desc,.t-res').forEach(t=>t.value='');
+  clearDraftForDate(document.getElementById('repDate').value);
+  // 汇报人默认带入上次提交的值，避免每次重选
+  const lastTo=await findLastReportTo();
+  setRepTo(lastTo);
+  toast('🗑️ 已清空');
+}
+
+/* ---------- 日期切换：带出已提交日报 ---------- */
+/** 当前登录人的标识（钉钉昵称优先，其次手动填名） */
+function currentAuthName(){
+  const dtRaw=localStorage.getItem(LS.dtUser);
+  if(dtRaw){ try{ const u=JSON.parse(dtRaw); if(u&&u.nick) return u.nick; }catch(e){} }
+  return localStorage.getItem(LS.userName)||'I';
+}
+
+/** 加载可选上级列表：取团队通讯录 + 已提交日报成员，加「其他（手动输入）」兜底 */
+async function populateRepToOptions(){
+  const sel=document.getElementById('repTo');
+  if(!sel) return;
+  const cur=sel.value;
+  let members=[];   // {name, union_id}
+  try{
+    if(supa){
+      // 优先取团队名单（team_members，含 union_id），再补充已提交日报中出现过的成员
+      const {data:t,error:te}=await supa.from('team_members').select('name,union_id');
+      if(!te&&t) t.forEach(r=>{ if(r.name) members.push({name:r.name, union_id:r.union_id||''}); });
+      const {data:d,error:de}=await supa.from('daily_reports').select('user_name');
+      if(!de&&d) d.forEach(r=>{ if(r.user_name && !members.find(m=>m.name===r.user_name)) members.push({name:r.user_name, union_id:''}); });
+      // 按名字去重保序
+      const seen={}; members=members.filter(m=>seen[m.name]?false:(seen[m.name]=1));
+      members.sort((a,b)=>a.name.localeCompare(b.name,'zh'));
+    }else{
+      const names=[...new Set(JSON.parse(localStorage.getItem(LS.localData)||'[]').map(r=>r.user_name).filter(Boolean))].sort();
+      members=names.map(n=>({name:n, union_id:''}));
+    }
+  }catch(e){}
+  sel.innerHTML='';
+  const o0=document.createElement('option');o0.value='';o0.textContent='请选择直属上级 *';sel.appendChild(o0);
+  members.forEach(m=>{
+    const o=document.createElement('option');
+    o.value=m.name; o.textContent=m.name;
+    if(m.union_id) o.dataset.uid=m.union_id;   // 提交时由此写入 report_to_union
+    sel.appendChild(o);
+  });
+  const oOther=document.createElement('option');oOther.value='__other__';oOther.textContent='✏️ 其他（手动输入）';sel.appendChild(oOther);
+  // 恢复当前选中：成员/空/其他直接匹配；历史手动值作为临时项保留，避免回填时丢失
+  if(cur && cur!=='__other__' && !members.find(m=>m.name===cur)){
+    const ot=document.createElement('option');ot.value=cur;ot.textContent=cur;ot.dataset.temp='1';sel.appendChild(ot);
+  }
+  sel.value=cur||'';
+}
+
+/** 回填汇报对象：设置 select 选中项；值不在成员列表则加临时项；选「其他」时显示手动输入框 */
+function setRepTo(val){
+  const sel=document.getElementById('repTo');
+  const other=document.getElementById('repToOther');
+  if(!sel) return;
+  if(!val){ sel.value=''; if(other){other.value='';other.classList.add('hidden');} return; }
+  const members=[...sel.options].map(o=>o.value).filter(v=>v && v!=='__other__');
+  if(!members.includes(val)){
+    const ot=document.createElement('option');ot.value=val;ot.textContent=val;ot.dataset.temp='1';sel.appendChild(ot);
+  }
+  sel.value=val;
+  if(sel.value==='__other__' && other){ other.classList.remove('hidden'); other.focus(); }
+  else if(other){ other.classList.add('hidden'); other.value=''; }
+}
+
+/** 读取最终汇报对象值（处理「其他」手动输入分支） */
+function collectRepTo(){
+  const sel=document.getElementById('repTo');
+  if(sel && sel.value==='__other__'){
+    const other=document.getElementById('repToOther');
+    return other? other.value.trim() : '';
+  }
+  return sel? sel.value.trim() : '';
+}
+
+/** 按昵称从 team_members 解析 union_id（用于手动输入汇报对象 / 下拉项缺 union_id 时回填 report_to_union） */
+async function resolveReportToUnion(name){
+  if(!name || !supa) return '';
+  try{
+    const {data,error}=await supa.from('team_members').select('union_id').eq('name',name).maybeSingle();
+    if(!error && data && data.union_id) return data.union_id;
+  }catch(e){}
+  return '';
+}
+
+/** 查该用户最近一条已提交日报的汇报对象（无则返回 ''） */
+async function findLastReportTo(){
+  const uid=authUnionId();
+  try{
+    if(supa && uid){
+      const {data,error}=await supa.from('daily_reports')
+        .select('report_to').eq('union_id',uid)
+        .order('report_date',{ascending:false}).limit(1).maybeSingle();
+      if(!error && data) return data.report_to||'';
+    }else{
+      const name=currentAuthName();
+      const arr=JSON.parse(localStorage.getItem(LS.localData)||'[]').filter(r=>r.user_name===name);
+      if(arr.length){ arr.sort((a,b)=>b.report_date.localeCompare(a.report_date)); return arr[0].report_to||''; }
+    }
+  }catch(e){}
+  return '';
+}
+
+/** 查该用户最近一条已提交日报的日期（无则返回 null） */
+async function findLatestReportDate(){
+  const uid=authUnionId();
+  try{
+    if(supa && uid){
+      const {data,error}=await supa.from('daily_reports')
+        .select('report_date').eq('union_id',uid)
+        .order('report_date',{ascending:false}).limit(1).maybeSingle();
+      if(!error && data) return data.report_date;
+    }else{
+      const name=currentAuthName();
+      const arr=JSON.parse(localStorage.getItem(LS.localData)||'[]').filter(r=>r.user_name===name);
+      if(arr.length) return arr.map(r=>r.report_date).sort().reverse()[0];
+    }
+  }catch(e){}
+  return null;
+}
+
+/** 切换到某日期：查出该日已提交的日报并回填；无则清空留白；
+ *  若所选日期无记录也无草稿，则自动定位到该用户最近一条已提交日报 */
+async function onDateChange(){
+  const date=document.getElementById('repDate').value;
+  if(!date) return;
+  const authName=currentAuthName();
+  const uid=authUnionId();
+  let rec=null;
+  try{
+    if(supa){
+      const {data,error}=await supa.from('daily_reports')
+        .select('*').eq('union_id',uid).eq('report_date',date).maybeSingle();
+      if(!error) rec=data;
+    }else{
+      rec=(JSON.parse(localStorage.getItem(LS.localData)||'[]'))
+        .find(r=>r.user_name===authName&&r.report_date===date)||null;
+    }
+  }catch(e){ rec=null; }
+
+  if(rec){
+    fillFormFromRecord(rec);
+    toast('📄 已载入 '+date+' 的日报，修改后点「提交日报」即可覆盖');
+    return;
+  }
+  // 当天无记录
+  const dd=getDrafts()[date];
+  if(dd){ fillFormFromRecord(dd); return; }
+  // 当天既无记录也无草稿：停留在用户所选日期，清空表单让用户填写新的日报（不再自动弹回最近日期）
+  clearFormKeepName();
+}
+
+/** 用已有记录/草稿回填表单（兼容云端记录的 report_to/title 与本地草稿的 reportTo/tplName） */
+function fillFormFromRecord(rec){
+  if(!rec) return;
+  if(!localStorage.getItem(LS.dtToken)){
+    document.getElementById('tplName').value = rec.title || rec.tplName || 'I';
+  }
+  setRepTo(rec.report_to || rec.reportTo || '');
+  const tasks = rec.tasks || [];
+  // 先清空所有任务框（保留行），再按数据填入，行数不足自动增补
+  document.querySelectorAll('.t-desc,.t-res').forEach(t=>t.value='');
+  ensureTaskRows(Math.max(TASKS, tasks.length));
+  tasks.forEach((t,i)=>{
+    const de=document.querySelector(`.t-desc[data-i="${i+1}"]`);
+    const re=document.querySelector(`.t-res[data-i="${i+1}"]`);
+    if(de)de.value=t.desc||'';
+    if(re)re.value=t.result||'';
+  });
+  syncAvatar(document.getElementById('tplName').value);
+}
+
+/** 清空表单但保留姓名（切换到一个没有记录的日期时调用）；汇报人默认带出上次提交的值 */
+async function clearFormKeepName(){
+  if(!localStorage.getItem(LS.dtToken)) document.getElementById('tplName').value='I';
+  document.querySelectorAll('.t-desc,.t-res').forEach(t=>t.value='');
+  clearDraftForDate(document.getElementById('repDate').value);
+  // 汇报人默认 = 上次提交的汇报对象（无则空）
+  const lastTo=await findLastReportTo();
+  setRepTo(lastTo);
+  syncAvatar(document.getElementById('tplName').value);
+}
+
+/* ---------- 日报列表 ---------- */
+let allReports=[];
+async function loadReports(){
+  if(supa){
+    const {data,error}=await supa.from('daily_reports').select('*').order('report_date',{ascending:false}).order('created_at',{ascending:false});
+    allReports = error? [] : (data||[]);
+    if(error)toast('❌ 加载失败：'+error.message);
+  }else{
+    allReports=JSON.parse(localStorage.getItem(LS.localData)||'[]').sort((a,b)=>b.report_date.localeCompare(a.report_date));
+  }
+  updateStats(); populatePersonSelects(); renderReports();
+}
+function updateStats(){
+  document.getElementById('statTotal').textContent=allReports.length;
+  document.getElementById('statPeople').textContent=new Set(allReports.map(r=>r.user_name)).size;
+  const today=todayStr();
+  document.getElementById('statToday').textContent=allReports.filter(r=>r.report_date===today).length;
+}
+function populatePersonSelects(){
+  const names=[...new Set(allReports.map(r=>r.user_name))].sort();
+  ['fltPerson','genPerson'].forEach(id=>{
+    const sel=document.getElementById(id); const cur=sel.value;
+    const first=id==='fltPerson'?'全部成员':'可见成员';
+    sel.innerHTML=`<option value="">${first}</option>`+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    sel.value=cur;
+  });
+}
+function renderReports(){
+  const person=document.getElementById('fltPerson').value;
+  const from=document.getElementById('fltFrom').value;
+  const to=document.getElementById('fltTo').value;
+  let list=allReports.filter(r=>{
+    if(person&&r.user_name!==person)return false;
+    if(from&&r.report_date<from)return false;
+    if(to&&r.report_date>to)return false;
+    return true;
+  });
+  const box=document.getElementById('reportList');
+  if(list.length===0){ box.innerHTML='<div class="empty"><div class="empty-icon">📭</div>暂无日报，快去填写第一条吧！</div>'; return; }
+  box.innerHTML=list.map(r=>{
+    const tasks=(r.tasks||[]).filter(t=>t.desc||t.result);
+    const preview=tasks.slice(0,3).map((t,i)=>`${i+1}. ${esc(t.desc||'-')}`).join('　');
+    const total=tasks.length;
+    return `<div class="report-item">
+      <div class="ri-head">
+        <span class="ri-name">👤 ${esc(r.user_name)} <span class="badge badge-blue">${total} 项任务</span></span>
+        <span class="ri-date">📅 ${r.report_date}</span>
+      </div>
+      <div class="ri-tasks">${preview||'（无内容）'}${total>3?' …':''}</div>
+      ${r.report_to?`<div style="margin-top:6px;font-size:13px;color:var(--muted)">汇报给：${esc(r.report_to)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 快捷日期 ---------- */
+function quickRange(type){
+  const now=new Date(); let from,to;
+  if(type==='week'){
+    const day=now.getDay()||7;
+    from=new Date(now); from.setDate(now.getDate()-day+1);
+    to=new Date(from); to.setDate(from.getDate()+6);
+  }else{
+    from=new Date(now.getFullYear(),now.getMonth(),1);
+    to=new Date(now.getFullYear(),now.getMonth()+1,0);
+  }
+  const f=d=>{const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`;};
+  document.getElementById('genFrom').value=f(from);
+  document.getElementById('genTo').value=f(to);
+  document.getElementById('genType').value= type==='week'?'weekly':'monthly';
+}
+
+/* ---------- AI 生成周报月报 ---------- */
+/** 读取「岗位职责」双索引映射（供生成报告时作为重点依据）
+ *  · byName ：昵称 → 职责（兜底，兼容 union_id 为空的手动成员）
+ *  · byUnion：union_id → 职责（首选，用不可篡改的身份锚点匹配，避免昵称不一致导致匹配失败）
+ *  表无 duty 列或未连云端则返回空映射。 */
+async function loadDutyMap(){
+  const byName={}, byUnion={};
+  try{
+    if(supa){
+      let {data,error}=await supa.from('team_members').select('name,duty,union_id');
+      // 若 live 库尚未加 duty 列，降级只读 name/union_id，不阻断生成
+      if(error && /duty/.test(error.message||'')){
+        const r=await supa.from('team_members').select('name,union_id');
+        data=r.data; error=r.error;
+        if(data) data.forEach(x=>x.duty=null);
+      }
+      if(!error&&data){
+        data.forEach(r=>{
+          if(r.duty){
+            if(r.name)     byName[r.name]=r.duty;
+            if(r.union_id) byUnion[r.union_id]=r.duty;
+          }
+        });
+      }
+    }
+  }catch(e){}
+  return {byName, byUnion};
+}
+
+/** 轻量 Markdown → HTML（行级解析，覆盖 bold/italic/header/list/code/blockquote/hr） */
+function renderMd(src){
+  if(!src) return '';
+  const lines = String(src).replace(/\r\n/g,'\n').split('\n');
+  let html='', para=[], inList=false, inPre=false, preBuf='';
+  // 行内格式：先转义，再做加粗/斜体/行内代码
+  const inline = s => esc(s)
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>');
+  const closePara = ()=>{ if(para.length){ html+='<p>'+para.join('<br>')+'</p>'; para=[]; } };
+  const closeList = ()=>{ if(inList){ html+='</ul>'; inList=false; } };
+  let m;
+  for(const raw of lines){
+    if(/^```/.test(raw.trim())){            // 代码块围栏
+      if(inPre){ html+='<pre style="background:#e8ecf4;padding:12px;border-radius:8px;overflow-x:auto;font-size:13px">'+esc(preBuf)+'</pre>'; inPre=false; preBuf=''; closePara(); }
+      else { closePara(); closeList(); inPre=true; preBuf=''; }
+      continue;
+    }
+    if(inPre){ preBuf += (preBuf?'\n':'')+raw; continue; }
+    if(m = raw.match(/^(#{1,4})\s+(.*)$/)){ closePara(); closeList(); const l=m[1].length; html+=`<h${l}>${inline(m[2])}</h${l}>`; continue; }
+    if(/^---+$/.test(raw.trim())){ closePara(); closeList(); html+='<hr style="border:none;border-top:1px solid #ddd;margin:12px 0">'; continue; }
+    if(m = raw.match(/^>\s?(.*)$/)){ closePara(); closeList(); html+=`<blockquote style="border-left:3px solid #ccc;padding-left:10px;color:#555">${inline(m[1])}</blockquote>`; continue; }
+    if(m = raw.match(/^\s*[-*]\s+(.*)$/) || (m = raw.match(/^\s*\d+\.\s+(.*)$/))){ closePara(); if(!inList){ html+='<ul>'; inList=true; } html+=`<li>${inline(m[1])}</li>`; continue; }
+    if(raw.trim()===''){ closePara(); closeList(); continue; }
+    closeList(); para.push(inline(raw));
+  }
+  if(inPre){ html+='<pre style="background:#e8ecf4;padding:12px;border-radius:8px;overflow-x:auto;font-size:13px">'+esc(preBuf)+'</pre>'; }
+  closePara(); closeList();
+  return html;
+}
+
+/** 取得可解密的 DeepSeek Key 明文：无本机密钥时弹主密码，主密码错可重输一次 */
+async function getUsableDsKey(){
+  const enc = localStorage.getItem(LS.dsKey);
+  if(!enc) return '';
+  try{
+    const dec = await decryptText(enc);
+    return (typeof dec==='string' && dec.startsWith('v')) ? '' : dec;
+  }catch(e){
+    // 主密码不正确或尚未输入 → 弹窗重输一次
+    const {pass, remember} = await requestMasterPass('主密码不正确，请重新输入');
+    _masterPass = pass;
+    _keyBySalt = {};
+    if(remember) await rememberMasterPass(pass);
+    try{
+      const dec = await decryptText(enc);
+      return (typeof dec==='string' && dec.startsWith('v')) ? '' : dec;
+    }catch(e2){ return ''; }
+  }
+}
+
+/** 构建发给 DeepSeek 的完整输入（系统提示词 + 用户提示词，含每位成员【岗位职责】）。
+ *  「生成」与「预览」共用，便于核对输入里是否包含岗位职责。
+ *  返回 {ok:true, sysP, userP, corpus, typeName} 或 {ok:false, msg}。 */
+async function buildReportInput(){
+  const type=document.getElementById('genType').value;
+  const person=document.getElementById('genPerson').value;
+  const from=document.getElementById('genFrom').value;
+  const to=document.getElementById('genTo').value;
+  if(!from||!to) return {ok:false, msg:'请选择日期范围'};
+
+  // 确保有数据
+  if(allReports.length===0) await loadReports();
+  let data=allReports.filter(r=>{
+    if(person&&r.user_name!==person)return false;
+    return r.report_date>=from && r.report_date<=to;
+  });
+  if(data.length===0) return {ok:false, msg:'该范围内没有日报数据'};
+
+  // 组装日报文本（结构化格式，让AI更容易解析）
+  const byPerson={};
+  data.sort((a,b)=>a.report_date.localeCompare(b.report_date));
+  data.forEach(r=>{ (byPerson[r.user_name]=byPerson[r.user_name]||[]).push(r); });
+
+  // 拉取团队成员岗位职责（用于让 AI 基于职责突出重点）
+  const dutyMap=await loadDutyMap();
+
+  let corpus='数据说明：每条日报包含日期、任务描述和执行结果。每位成员开头标注其【岗位职责】，请据此判断其工作重点，并以岗位职责为主线组织该成员的内容。\n';
+  let dutyMatched=0;  // 实际注入岗位职责的成员数（用于预览计数，避免把说明文字算进去）
+  Object.entries(byPerson).forEach(([name,reps])=>{
+    // 优先用不可篡改的 union_id 匹配职责，其次回退到昵称，避免昵称不一致导致漏读职责
+    const duty = (reps[0] && reps[0].union_id && dutyMap.byUnion[reps[0].union_id])
+               || dutyMap.byName[name] || '';
+    corpus+=`\n### 成员：${name}\n`;
+    if(duty){ corpus+=`【岗位职责】${duty}\n`; dutyMatched++; }
+    reps.forEach(r=>{
+      const ts=(r.tasks||[]).filter(t=>t.desc||t.result);
+      if(ts.length===0){
+        corpus+=`- ${r.report_date}：（该日无任务记录）\n`;
+      }else{
+        corpus+=`- ${r.report_date} 的任务：\n`;
+        ts.forEach((t,i)=>{
+          const status = t.result ? '已完成' : '结果未填写';
+          corpus += `  任务${i+1}: [${status}] 描述：${t.desc||'未填写'} | 结果：${t.result||'无'}\n`;
+        });
+      }
+      if(r.report_to) corpus+=`  汇报对象：${r.report_to}\n`;
+    });
+  });
+
+  const typeName= type==='weekly'?'周报':'月报';
+  const unit = type==='weekly'?'周':'月';
+  const nextUnit = type==='weekly'?'下周':'下月';
+
+  // 读取可配置的提示词模板（设置页可改），缺省用内置默认；并防御云端/本地脏数据
+  let rawTpl = (type==='weekly'
+    ? (localStorage.getItem(LS.weeklyPrompt) || '')
+    : (localStorage.getItem(LS.monthlyPrompt) || '')
+  );
+  if(!rawTpl || rawTpl.trim()==='' || rawTpl.trim()==='undefined'){
+    rawTpl = type==='weekly' ? DEFAULT_WEEKLY_PROMPT : DEFAULT_MONTHLY_PROMPT;
+  }
+  const userP = rawTpl
+    .replaceAll('{typeName}', typeName)
+    .replaceAll('{from}', from)
+    .replaceAll('{to}', to)
+    .replaceAll('{unit}', unit)
+    .replaceAll('{nextUnit}', nextUnit)
+    .replaceAll('{corpus}', corpus);
+
+  return {ok:true, sysP:SYS_PROMPT, userP, corpus, typeName, dutyMatched};
+}
+
+async function generateReport(){
+  const dsKey = await getUsableDsKey();
+  if(!dsKey){ toast('⚠️ Key 未配置或主密码不正确，请联系管理员'); return; }
+
+  const input = await buildReportInput();
+  if(!input.ok){ toast('⚠️ '+input.msg); return; }
+  const {sysP, userP, typeName} = input;
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> DeepSeek V4 生成中...';
+  const out=document.getElementById('genOut');
+  out.classList.add('show'); out.innerHTML='🤖 正在读取日报并生成报告...';
+  const model=localStorage.getItem(LS.dsModel)||'deepseek-v4-pro';
+
+  try{
+    const resp=await fetch('https://api.deepseek.com/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+dsKey},
+      body:JSON.stringify({
+        model, temperature:0.7, max_tokens:4000,
+        messages:[{role:'system',content:sysP},{role:'user',content:userP}]
+      })
+    });
+    if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.error?.message||('HTTP '+resp.status)); }
+    const j=await resp.json();
+    currentResult=j.choices[0].message.content;
+    out.innerHTML=renderMd(currentResult);
+    document.getElementById('genActions').classList.remove('hidden');
+    toast('✅ '+typeName+'生成完成！');
+  }catch(e){
+    out.innerHTML='❌ 生成失败：'+e.message;
+    toast('❌ '+e.message);
+  }finally{
+    btn.disabled=false; btn.innerHTML='✨ 生成报告';
+  }
+}
+
+/** 预览即将发送给 DeepSeek 的完整输入（系统提示词 + 用户提示词），
+ *  让用户直观确认每位成员的【岗位职责】已注入——无需消耗 API。 */
+async function previewReport(){
+  const input = await buildReportInput();
+  if(!input.ok){ toast('⚠️ '+input.msg); return; }
+  const out=document.getElementById('genOut');
+  out.classList.add('show');
+  const dutyCount=input.dutyMatched;
+  out.innerHTML =
+    `<div style="margin-bottom:10px"><b>📤 即将发送给 DeepSeek 的输入预览</b><br>`+
+    `<span style="color:var(--muted);font-size:13px">已匹配并注入 <b>${dutyCount}</b> 位成员的【岗位职责】。下方可展开查看完整 prompt（不消耗 API）。</span><br>`+
+    `<span style="background:#fff3cd;padding:2px 8px;border-radius:4px;font-size:13px;color:#856404;font-weight:600">⛔ 字数硬限：全篇报告 ≤ 500 字（含标点）——已写入系统提示词规则 #8，无论周报/月报均强制生效</span></div>`+
+    `<details open><summary style="cursor:pointer;font-weight:600">① 系统提示词（固定规则）</summary>`+
+    `<pre style="white-space:pre-wrap;background:#eef1f7;padding:12px;border-radius:8px;font-size:12px;max-height:260px;overflow:auto">${esc(input.sysP)}</pre></details>`+
+    `<details open><summary style="cursor:pointer;font-weight:600;margin-top:8px">② 用户提示词（含日报数据 + 岗位职责）</summary>`+
+    `<pre style="white-space:pre-wrap;background:#eef1f7;padding:12px;border-radius:8px;font-size:12px;max-height:380px;overflow:auto">${esc(input.userP)}</pre></details>`;
+}
+
+function copyResult(){
+  if(!currentResult)return;
+  navigator.clipboard.writeText(currentResult).then(()=>toast('📋 已复制到剪贴板'));
+}
+function downloadResult(){
+  if(!currentResult)return;
+  const type=document.getElementById('genType').value==='weekly'?'周报':'月报';
+  const from=document.getElementById('genFrom').value;
+  const blob=new Blob([currentResult],{type:'text/markdown'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=`${type}_${from}.md`; a.click();
+  URL.revokeObjectURL(a.href); toast('📥 已下载');
+}
+
+/* ---------- 工具 ---------- */
+function toast(msg){
+  const t=document.getElementById('toast'); if(!t) return;
+  t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600);
+}
+// 全局错误捕获：任何未处理的异常都显示出来，避免「点了没反应」却看不到原因
+window.addEventListener('error', (e)=>{
+  const msg = (e && (e.message || (e.error && e.error.message))) || '未知错误';
+  console.error('[global error]', e);
+  try { toast('⚠️ 页面出错：'+msg); } catch(_){}
+});
+window.addEventListener('unhandledrejection', (e)=>{
+  const r = e && e.reason;
+  const msg = (r && (r.message || r.error)) || '异步异常';
+  console.error('[unhandledrejection]', e.reason);
+  try { toast('⚠️ 页面出错：'+msg); } catch(_){}
+});
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+/** 本地时区的「今天」(YYYY-MM-DD)，避免 toISOString() 用 UTC 导致时区偏差 */
+function todayStr(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+init();
+</script>
+</body>
+</html>
