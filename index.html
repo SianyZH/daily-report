@@ -1135,6 +1135,17 @@ function switchPage(p){
  *   3. 钉钉回调带 code 回到本页
  *   4. handleDingtalkCallback() 接收 code 并换取用户信息+JWT
  */
+/** 计算当前页面所在目录的完整 URL（含子路径，如 GitHub Pages 的 /daily-report/），
+ *  用作钉钉 OAuth 的 redirect_uri，确保回调能落回正确的页面而非根域名 */
+function currentBaseUrl(){
+  const raw = window.location.href.split('?')[0].split('#')[0];
+  const u = new URL(raw);
+  let path = u.pathname;
+  if(path.endsWith('/')) return u.origin + path;
+  const i = path.lastIndexOf('/');
+  return u.origin + (i >= 0 ? path.slice(0, i + 1) : '/');
+}
+
 async function startDingtalkLogin(){
   const supaUrl = getSupaUrl();
   if(!supaUrl){ toast('⚠️ 请先在设置里配置 Supabase URL'); switchPage('settings'); return; }
@@ -1151,8 +1162,8 @@ async function startDingtalkLogin(){
     const clientId = config.client_id;
     if(!clientId) throw new Error('服务端未配置钉钉 AppKey');
 
-    // Step 2: 构造授权 URL 并跳转（用纯域名作为 redirect_uri，便于在钉钉登记）
-    const callbackUrl = window.location.origin;
+    // Step 2: 构造授权 URL 并跳转（redirect_uri 用完整页面目录，确保回调落回本页而非根域名）
+    const callbackUrl = currentBaseUrl();
     const state = crypto.randomUUID(); // CSRF 防护
     localStorage.setItem('dt_state', state);
 
@@ -1181,7 +1192,7 @@ async function startCalendarAuth(){
     const config = await configRes.json();
     const clientId = config.client_id;
     if(!clientId) throw new Error('服务端未配置钉钉 AppKey');
-    const callbackUrl = window.location.origin;
+    const callbackUrl = currentBaseUrl();
     const state = 'calendar_' + crypto.randomUUID();
     localStorage.setItem('dt_state_calendar', state);
     const authUrl = new URL('https://login.dingtalk.com/oauth2/auth');
