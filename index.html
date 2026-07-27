@@ -1434,6 +1434,19 @@ async function handleCalendarCallback(code){
     localStorage.setItem(LS.dtCalUnion, result.user?.unionId || '');
     const exp = (result.dingtalkExpireIn || 7200) * 1000;
     localStorage.setItem(LS.dtCalExpire, String(Date.now() + exp));
+    // 日历授权回调也会返回新的 Supabase JWT；若原登录态已过期，必须刷新，否则 /calendar 仍报 401
+    if(result.token){
+      localStorage.setItem(LS.dtToken, await encryptDevice(result.token));
+      localStorage.setItem(LS.dtUser, JSON.stringify(result.user || {}));
+      refreshSupabaseWithToken(result.token);
+      const nick = result.user?.nick || result.user?.unionId || '';
+      if(nick){
+        document.getElementById('tplName').value = nick;
+        syncAvatar(nick);
+        updateDtLoginBtn(true, nick);
+      }
+      loadUserSettings();
+    }
     toast('✅ 钉钉日历已授权，正在导入...');
     // 还原授权前所选日期（OAuth 整页刷新会把 repDate 重置为今天）
     const pd = localStorage.getItem('dt_cal_pending_date');
