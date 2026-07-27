@@ -531,8 +531,14 @@
 .rd-task{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--bg)}
 .rd-task .rd-idx{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:700;margin-right:8px;flex:0 0 auto}
 .rd-task .rd-desc{font-weight:600;color:var(--text)}
-.rd-task .rd-result{margin-top:6px;color:var(--text);opacity:.82;padding-left:30px}
-.rd-task .rd-result b{color:var(--accent);font-weight:600}
+.rd-task .rd-result{margin-top:8px;color:var(--text);opacity:.9;padding-left:30px;font-size:13px}
+.rd-task .rd-result b{color:var(--accent);font-weight:600;margin-right:4px}
+.rd-result-empty{color:var(--muted);font-style:italic;opacity:.7}
+.rd-status{display:inline-block;padding:2px 11px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid transparent;line-height:1.5}
+.st-done{background:rgba(34,197,94,.14);color:#15803d;border-color:rgba(34,197,94,.32)}
+.st-doing{background:rgba(59,130,246,.14);color:#1d4ed8;border-color:rgba(59,130,246,.32)}
+.st-risk{background:rgba(239,68,68,.14);color:#b91c1c;border-color:rgba(239,68,68,.32)}
+.st-other{background:rgba(100,116,139,.16);color:#475569;border-color:rgba(100,116,139,.32)}
 .rd-empty{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--muted)}
 </style>
 
@@ -991,7 +997,7 @@ function addTaskRow(){
   const tr=document.createElement('tr');
   tr.innerHTML=`<td class="tnum"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></td>
     <td><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="2"></textarea></td>
-    <td class="col-res"><textarea class="t-res" data-i="${i}" placeholder="完成情况..." rows="2"></textarea></td>`;
+    <td class="col-res"><textarea class="t-res" data-i="${i}" placeholder="如：已完成 / 进行中 / 已延期" rows="2"></textarea></td>`;
   tb.appendChild(tr);
   // 绑定草稿自动保存（动态行也要生效）
   tr.querySelectorAll('textarea').forEach(t=>t.addEventListener('input',saveDraft));
@@ -2162,21 +2168,34 @@ function openReportDetail(idx){
   if(!r) return;
   const tasks=(r.tasks||[]).filter(t=>t.desc||t.result);
   const total=tasks.length;
+  const resultCnt=tasks.filter(t=>t.result).length;
   document.getElementById('rdHead').innerHTML=`
     <div class="rd-title">👤 ${esc(r.user_name)} <span class="badge badge-blue">${total} 项任务</span></div>
     <div class="rd-meta">
       <span>📅 ${esc(r.report_date)}</span>
       ${r.report_to?`<span>📨 汇报给：${esc(r.report_to)}</span>`:''}
       ${r.created_at?`<span>🕒 提交于：${esc(String(r.created_at).replace('T',' ').slice(0,16))}</span>`:''}
+      ${total?`<span>✅ 结果已填 ${resultCnt}/${total}</span>`:''}
     </div>`;
   document.getElementById('rdBody').innerHTML = total
-    ? tasks.map((t,i)=>`
-        <div class="rd-task">
+    ? tasks.map((t,i)=>{
+        const st = t.result
+          ? `<span class="rd-status ${statusClass(t.result)}">${esc(t.result)}</span>`
+          : `<span class="rd-result-empty">（未填写）</span>`;
+        return `<div class="rd-task">
           <div class="rd-desc"><span class="rd-idx">${i+1}</span>${esc(t.desc||'-')}</div>
-          ${t.result?`<div class="rd-result"><b>结果 / 状态：</b>${esc(t.result)}</div>`:''}
-        </div>`).join('')
+          <div class="rd-result"><b>结果 / 状态：</b>${st}</div>
+        </div>`;
+      }).join('')
     : `<div class="rd-empty">（该日报暂无任务内容）</div>`;
   document.getElementById('reportDetailModal').classList.remove('hidden');
+}
+/** 根据结果文案自动匹配状态配色（完成=绿 / 进行中=蓝 / 延期风险=红 / 其他=灰） */
+function statusClass(t){
+  if(/完成|已结|交付|通过|达标|done|ok|finish/i.test(t)) return 'st-done';
+  if(/进行中|推进中|跟进中|处理中|待|pending|进行|跟进/i.test(t)) return 'st-doing';
+  if(/延期|阻塞|风险|问题|失败|未达|delay|fail|异常|卡/i.test(t)) return 'st-risk';
+  return 'st-other';
 }
 function closeReportDetail(){ document.getElementById('reportDetailModal').classList.add('hidden'); }
 // 点击遮罩关闭
