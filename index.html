@@ -1371,8 +1371,11 @@ async function handleDingtalkCallback(){
 
     const result = await res.json();
     if(!res.ok || !result.success) {
-      const detail = result.detail ? '（'+result.detail+'）' : '';
-      throw new Error((result.error || '登录失败') + detail);
+      let msg = (result.error || '登录失败') + (result.detail ? '（' + result.detail + '）' : '');
+      if (result.hint) msg += '\n💡 ' + result.hint;
+      if (result.foundBy) msg += '\n[foundBy=' + result.foundBy + ', userId=' + (result.userId || '-') + ', email=' + (result.email || '-') + ']';
+      if (result.putError) msg += '\n[putError=' + result.putError + ']';
+      throw new Error(msg);
     }
 
     localStorage.setItem(LS.dtToken, await encryptDevice(result.token));
