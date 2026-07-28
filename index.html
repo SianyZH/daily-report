@@ -933,10 +933,15 @@ let supa = null;          // supabase client
 let currentResult = '';   // 最近生成的报告文本
 
 /* ---------- 初始化 ---------- */
+let userPickedDate = false;
+
 async function init(){
   // 日期默认今天
   const today = todayStr();
   document.getElementById('repDate').value = today;
+  userPickedDate = false;
+  // 清理可能残留的日历导入待还原日期（若本次并非钉钉授权回跳），避免跨天污染 repDate
+  if(!new URLSearchParams(location.search).has('code')) localStorage.removeItem('dt_cal_pending_date');
 
   // 生成任务行（默认 10 行，可随粘贴/数据动态增加）
   for(let i=1;i<=TASKS;i++){ addTaskRow(); }
@@ -1111,7 +1116,13 @@ function bindEvents(){
   });
   // 切换日期：带出该日已提交的日报，可修改后重新提交覆盖
   const repDateEl=document.getElementById('repDate');
-  if(repDateEl) repDateEl.addEventListener('change', onDateChange);
+  if(repDateEl) repDateEl.addEventListener('change', ()=>{ userPickedDate = true; onDateChange(); });
+  // 页面重新可见时，若日期是过去且非用户手动选择，自动校正为今天，避免"页面长时间开着导致日期停留在旧日"误存
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState!=='visible' || userPickedDate) return;
+    const t=todayStr(); const cur=document.getElementById('repDate').value;
+    if(cur && cur < t){ document.getElementById('repDate').value = t; onDateChange(); }
+  });
   // 汇报对象下拉：选「其他」时显示手动输入框
   const repToEl=document.getElementById('repTo');
   if(repToEl) repToEl.addEventListener('change',()=>{
@@ -1452,6 +1463,7 @@ async function handleCalendarCallback(code){
     const pd = localStorage.getItem('dt_cal_pending_date');
     if(pd){ document.getElementById('repDate').value = pd; }
     localStorage.removeItem('dt_cal_pending_date');
+    userPickedDate = true; // 日历导入是用户主动选择日期，避免被"页面重新可见自动校正"覆盖
     localStorage.setItem('dt_cal_just_auth', '1');
     await importFromCalendar();
   } catch(e){
