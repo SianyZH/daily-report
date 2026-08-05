@@ -2328,8 +2328,8 @@ function fillFormFromRecord(rec){
     const due=document.querySelector(`.t-due[data-i="${i+1}"]`);
     const tid=document.querySelector(`.t-taskid[data-i="${i+1}"]`);
     if(de) de.value=t.desc||'';
-    if(ne) ne.value=t.note!=null?t.note:(t.result||'');
-    if(st) st.value=normalizeStatus(t.status) || inferStatus(t.result||t.note||'');
+    if(ne) ne.value=(t.note!=null&&t.note!=='')?t.note:(t.result||'');
+    if(st) st.value=(t.status && ['进行中','已完成','阻塞','待开始'].includes(t.status)) ? t.status : inferStatus(t.result||t.note||t.desc||'');
     if(due) due.value=t.due||'';
     if(tid) tid.value=t.task_id||'';
   });

@@ -10,6 +10,7 @@
 
 ## 2026-08-05
 
+- fix: 历史日报回填状态推断——fillFormFromRecord 不再用 normalizeStatus 强制兜底"进行中"，t.status 缺省时走 inferStatus 从 result/note/desc 推断；note 回填补强空字符串兜底
 - fix: 修复日报表格列错位——thead补齐第4列(状态/结果-备注)与tbody的4个td对齐，根治table-layout:fixed下多td被错位填充
 - feat: 任务跟进系统——新建 tasks 表+迁移51条历史任务+日/周/月视图看板+子任务+角色视图(我的/下属/团队)+日报提交同步写tasks
 
