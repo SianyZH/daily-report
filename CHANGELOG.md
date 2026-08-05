@@ -10,6 +10,7 @@
 
 ## 2026-08-05
 
+- refactor: 子任务管理统一收口到任务跟进页——填日报表单移除子任务输入(只保留描述/状态/备注/到期)，详情弹窗加子任务列表+添加+删除+状态/到期/备注编辑+主任务状态/到期/备注编辑
 - fix: 任务跟进页面空白——switchPage 的 page 数组漏了 follow 导致 page-follow 永远停留在 hidden
 - fix: 历史日报回填状态推断——fillFormFromRecord 不再用 normalizeStatus 强制兜底"进行中"，t.status 缺省时走 inferStatus 从 result/note/desc 推断；note 回填补强空字符串兜底
 - fix: 修复日报表格列错位——thead补齐第4列(状态/结果-备注)与tbody的4个td对齐，根治table-layout:fixed下多td被错位填充

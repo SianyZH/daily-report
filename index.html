@@ -237,25 +237,38 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
-/* 表单内任务元信息行（状态/备注/到期/子任务） */
+/* 表单内任务元信息行（状态/备注/到期） */
 .task-meta{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
 .task-meta select.t-status{width:96px;border:2px solid var(--border);border-radius:8px;padding:5px 6px;font-size:13px;font-family:inherit;background:#fff;color:var(--text)}
 .task-meta input.t-due{width:auto;flex:1;min-width:124px;padding:5px 8px;font-size:12px;border:2px solid var(--border);border-radius:8px;font-family:inherit}
-.t-sub-btn{border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--primary);font-family:inherit;white-space:nowrap}
-.t-sub-btn:hover{background:var(--primary);color:#fff}
-.sub-wrap{border-top:1px dashed var(--border);margin-top:8px;padding-top:8px}
-.sub-row{display:flex;gap:6px;margin-top:6px;align-items:flex-start}
-.sub-row textarea{flex:1;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;resize:vertical;min-height:34px}
-.sub-row select{width:84px;border:1px solid var(--border);border-radius:8px;padding:6px;font-size:12px;font-family:inherit}
-.sub-row .sub-del{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
-.sub-row .sub-del:hover{color:#e5484d}
 /* 任务详情弹窗 */
 .td-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
 .td-title{font-size:16px;font-weight:700;margin-bottom:8px}
-.td-row{font-size:13px;color:var(--text);margin:5px 0;display:flex;gap:8px}
+.td-row{font-size:13px;color:var(--text);margin:5px 0;display:flex;gap:8px;align-items:center}
+.td-row.td-row-stack{align-items:flex-start;flex-direction:column}
 .td-row .td-k{color:var(--muted);flex:0 0 76px}
-.td-sub{margin-top:10px;border-top:1px dashed var(--border);padding-top:8px}
+.td-input{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;font-family:inherit;background:#fff;color:var(--text);min-height:30px}
+.td-input:focus{outline:none;border-color:var(--primary)}
+textarea.td-input{width:100%;resize:vertical;font-family:inherit}
 .td-note{background:#fff;border-left:3px solid var(--primary);border-radius:6px;padding:8px 10px;font-size:13px;margin-top:6px}
+/* 子任务 / 跟进节点（详情弹窗） */
+.td-sublist{border-top:1px dashed var(--border);padding-top:10px;margin-top:8px}
+.td-sublist-head{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.td-subrow{display:grid;grid-template-columns:1fr 100px 130px 1fr auto;gap:6px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px}
+.td-subrow textarea.td-input{min-height:34px;width:auto}
+.td-subrow select.td-input{width:100%}
+.td-subrow input.td-input{width:100%}
+.td-sub-actions{display:flex;flex-direction:column;gap:4px;align-self:center}
+.td-subadd{background:#fff;border:2px dashed var(--border);border-radius:8px;padding:10px;margin-top:8px}
+.td-subadd-title{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.td-subadd input.td-input{width:100%;margin-bottom:6px}
+.td-subadd-row{display:grid;grid-template-columns:120px 130px 1fr auto;gap:6px;align-items:center}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+@media (max-width:680px){
+  .td-subrow{grid-template-columns:1fr 1fr;gap:6px}
+  .td-subrow .td-sub-actions{flex-direction:row;grid-column:1/-1;justify-content:flex-end}
+  .td-subadd-row{grid-template-columns:1fr 1fr;gap:6px}
+}
 </style>
 <script src="sortable.min.js"></script>
 </head>
@@ -1095,11 +1108,11 @@ async function init(){
 }
 
 /* ---------- 任务行：动态增删，支持表格批量粘贴 ---------- */
-/** 追加一行任务输入框，返回该行序号（1 起）。init 可预填 {desc,status,note,due,subtasks,task_id} */
+/** 追加一行任务输入框，返回该行序号（1 起）。init 可预填 {desc,status,note,due,task_id} */
 function addTaskRow(init){
   const tb=document.getElementById('taskBody');
   const i=tb.children.length+1;
-  const t = init || {desc:'', status:'进行中', note:'', due:'', subtasks:[], task_id:''};
+  const t = init || {desc:'', status:'进行中', note:'', due:'', task_id:''};
   const sel = (v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
   const tr=document.createElement('tr');
   tr.innerHTML=`<td class="tnum"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
@@ -1111,39 +1124,11 @@ function addTaskRow(init){
       <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
       <div class="task-meta">
         <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
-        <button type="button" class="t-sub-btn" onclick="toggleSubWrap(this)">＋子任务</button>
-      </div>
-      <div class="sub-wrap hidden" data-i="${i}">
-        <div class="sub-list-edit"></div>
-        <button type="button" class="t-sub-btn" onclick="addSubRow(this)">＋ 添加子任务</button>
       </div>
     </td>`;
   tb.appendChild(tr);
   tr.querySelectorAll('textarea,select,input').forEach(el=>el.addEventListener('input',saveDraft));
-  if(t.subtasks && t.subtasks.length){
-    const wrap = tr.querySelector('.sub-wrap'); wrap.classList.remove('hidden');
-    t.subtasks.forEach(s=>addSubRow(wrap.querySelector('.t-sub-btn'), s));
-  }
   return i;
-}
-/** 展开/收起子任务编辑区 */
-function toggleSubWrap(btn){
-  const wrap = btn.closest('td').querySelector('.sub-wrap');
-  if(wrap) wrap.classList.toggle('hidden');
-  saveDraft();
-}
-/** 新增一行子任务输入（init 可预填 {desc,status,note}） */
-function addSubRow(btn, init){
-  const wrap = btn.closest('.sub-wrap');
-  if(!wrap) return;
-  const s = init || {desc:'', status:'进行中', note:''};
-  const row=document.createElement('div');
-  row.className='sub-row';
-  row.innerHTML=`<textarea class="s-desc" rows="1" placeholder="子任务 / 跟进节点">${esc(s.desc||'')}</textarea>
-    <select class="s-status"><option value="进行中"${s.status==='进行中'?' selected':''}>进行中</option><option value="已完成"${s.status==='已完成'?' selected':''}>已完成</option><option value="阻塞"${s.status==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${s.status==='待开始'?' selected':''}>待开始</option></select>
-    <button type="button" class="sub-del" title="删除" onclick="this.closest('.sub-row').remove();saveDraft()">×</button>`;
-  wrap.querySelector('.sub-list-edit').appendChild(row);
-  row.querySelectorAll('textarea,select').forEach(el=>el.addEventListener('input',saveDraft));
 }
 /** 当前任务行数 */
 function taskRowCount(){ return document.getElementById('taskBody').children.length; }
@@ -1157,7 +1142,7 @@ function renumberTasks(){
   Array.from(tb.children).forEach((tr,idx)=>{
     const n=idx+1;
     const nt=tr.querySelector('.tnum-text'); if(nt) nt.textContent=n;
-    ['t-desc','t-status','t-note','t-due','t-taskid','sub-wrap'].forEach(cls=>{
+    ['t-desc','t-status','t-note','t-due','t-taskid'].forEach(cls=>{
       const el=tr.querySelector('.'+cls); if(el) el.setAttribute('data-i',n);
     });
   });
@@ -2000,20 +1985,10 @@ function collectForm(){
     const note=(tr.querySelector('.t-note').value||'').trim();
     const due=(tr.querySelector('.t-due').value||'');
     const taskId=(tr.querySelector('.t-taskid').value||'')||'';
-    // 子任务（仅取有描述的）
-    let subtasks=[];
-    const wrap=tr.querySelector('.sub-wrap');
-    if(wrap){
-      wrap.querySelectorAll('.sub-row').forEach(sr=>{
-        const sd=(sr.querySelector('.s-desc').value||'').trim();
-        if(!sd) return;
-        subtasks.push({ desc:sd, status:normalizeStatus(sr.querySelector('.s-status').value), note:'' });
-      });
-    }
-    // 跳过完全空行（描述、备注、子任务均无）
-    if(!desc && !note && subtasks.length===0) return;
+    // 跳过完全空行（描述/备注均无）
+    if(!desc && !note) return;
     tasks.push({
-      desc, status, note, due, subtasks,
+      desc, status, note, due,
       task_id: taskId,
       result: composeResult(status, note)   // 兼容字段：供 AI 生成 / 旧列表详情展示
     });
@@ -2082,18 +2057,11 @@ async function saveReport(){
         throw error;
       }
       const reportId = ins && ins.id;
-      // 同步写入 tasks 表（任务成为一等实体，支撑「任务跟进」视图）
+      // 同步写入 tasks 表（任务成为一等实体，支撑「任务跟进」视图；子任务不进 daily_reports，
+      // 统一在「任务跟进」详情弹窗里维护，避免日报表单被复杂化）
       for(const t of baseTasks){
         try{
           t.task_id = await upsertTask(t, authUnion, d.reportToUnion, d.date, reportId);
-          if(t.subtasks && t.subtasks.length){
-            for(const s of t.subtasks){
-              await supa.from('tasks').insert({
-                union_id:authUnion, report_to_union:d.reportToUnion, parent_id:t.task_id,
-                title:s.desc, status:s.status||'进行中', note:s.note||'', created_date:d.date
-              });
-            }
-          }
         }catch(te){ console.error('[task upsert]', te); }
       }
       // 把回填后的 task_id 写回日报，便于列表/详情关联
@@ -2310,15 +2278,13 @@ function fillFormFromRecord(rec){
   }
   setRepTo(rec.report_to || rec.reportTo || '');
   const tasks = rec.tasks || [];
-  // 先清空所有任务框与状态/日期/子任务（保留行），再按数据填入，行数不足自动增补
+  // 先清空所有任务框与状态/日期（保留行），再按数据填入，行数不足自动增补
   document.querySelectorAll('#taskBody tr').forEach(tr=>{
     const de=tr.querySelector('.t-desc'); if(de) de.value='';
     const ne=tr.querySelector('.t-note'); if(ne) ne.value='';
     const st=tr.querySelector('.t-status'); if(st) st.value='进行中';
     const due=tr.querySelector('.t-due'); if(due) due.value='';
     const tid=tr.querySelector('.t-taskid'); if(tid) tid.value='';
-    const sw=tr.querySelector('.sub-wrap');
-    if(sw){ sw.classList.add('hidden'); const sl=sw.querySelector('.sub-list-edit'); if(sl) sl.innerHTML=''; }
   });
   ensureTaskRows(Math.max(TASKS, tasks.length));
   tasks.forEach((t,i)=>{
@@ -2344,8 +2310,6 @@ function clearAllTaskRows(){
     const st=tr.querySelector('.t-status'); if(st) st.value='进行中';
     const due=tr.querySelector('.t-due'); if(due) due.value='';
     const tid=tr.querySelector('.t-taskid'); if(tid) tid.value='';
-    const sw=tr.querySelector('.sub-wrap');
-    if(sw){ sw.classList.add('hidden'); const sl=sw.querySelector('.sub-list-edit'); if(sl) sl.innerHTML=''; }
     saveDraft();
   });
 }
@@ -2774,7 +2738,7 @@ async function bringUnfinished(){
     if(error) throw error;
     if(!data || !data.length){ toast('🎉 当前没有未完成的任务'); return; }
     data.forEach(t=>{
-      addTaskRow({ desc:t.title, status:t.status, note:t.note||'', due:t.due_date||'', task_id:t.id, subtasks:[] });
+      addTaskRow({ desc:t.title, status:t.status, note:t.note||'', due:t.due_date||'', task_id:t.id });
     });
     saveDraft();
     toast(`📥 已带入 ${data.length} 条未完成任务（可继续补充后提交）`);
@@ -2920,20 +2884,133 @@ function openTaskDetail(id){
   const today=todayStr();
   const ref=t.status==='已完成'?(t.completed_date||today):today;
   const days=followDays(t.created_date, ref);
+  const STATUS_OPT=(v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
+  const meUid = (JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId || '';
+  const canEdit = !!supa && meUid && (meUid===t.union_id || meUid===t.report_to_union || isAdmin());
   document.getElementById('tdHead').innerHTML=`<div class="td-title">${esc(t.title||'(无标题)')} <span class="rd-status ${statusClass(t.status)}">${t.status}</span></div>`;
+  // 主任务信息（可编辑：状态 / 期望完成 / 备注）
   let body=`<div class="td-card">
     <div class="td-row"><span class="td-k">创建日期</span><span>${t.created_date}</span></div>
-    <div class="td-row"><span class="td-k">期望完成</span><span>${t.due_date||'未设置'}</span></div>
     <div class="td-row"><span class="td-k">跟进时长</span><span>已跟进 ${days} 天</span></div>
-    <div class="td-row"><span class="td-k">状态</span><span>${t.status}</span></div>`;
-  if(t.note) body+=`<div class="td-note">${esc(t.note)}</div>`;
-  body+=`</div>`;
+    <div class="td-row"><span class="td-k">期望完成</span><span>${canEdit?`<input type="date" class="td-input" id="tdDue" value="${t.due_date||''}">`:esc(t.due_date||'未设置')}</span></div>
+    <div class="td-row"><span class="td-k">状态</span><span>${canEdit?`<select class="td-input" id="tdStatus">${STATUS_OPT(t.status)}</select>`:esc(t.status)}</span></div>
+    <div class="td-row td-row-stack"><span class="td-k">备注</span>${canEdit?`<textarea class="td-input" id="tdNote" rows="2" placeholder="补充说明 / 进展">${esc(t.note||'')}</textarea>`:(t.note?`<div class="td-note">${esc(t.note)}</div>`:'<span style="color:var(--muted)">无</span>')}</div>
+    ${canEdit?`<div class="btn-row" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="saveParentTask('${t.id}')">💾 保存主任务改动</button></div>`:''}
+  </div>`;
+
+  // 子任务 / 跟进节点
+  body+=`<div class="td-sublist">
+    <div class="td-sublist-head">📌 子任务 / 跟进节点（${subs.length}）</div>`;
   if(subs.length){
-    body+=`<div class="td-sub"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px">子任务 / 跟进节点（${subs.length}）</div>`+
-      subs.map(s=>`<div class="td-row"><span class="s-st s-${subCls(s.status)}">${s.status}</span><span>${esc(s.title||'')}${s.note?': '+esc(s.note):''}</span></div>`).join('')+`</div>`;
+    subs.forEach(s=>{
+      body+=`<div class="td-subrow" data-sub-id="${s.id}">
+        <textarea class="td-input td-sub-title" rows="1" ${canEdit?'':'readonly'} placeholder="子任务 / 跟进节点">${esc(s.title||'')}</textarea>
+        <select class="td-input td-sub-status" ${canEdit?'':'disabled'}>${STATUS_OPT(s.status)}</select>
+        <input type="date" class="td-input td-sub-due" value="${s.due_date||''}" ${canEdit?'':'readonly'}>
+        <textarea class="td-input td-sub-note" rows="1" ${canEdit?'':'readonly'} placeholder="备注">${esc(s.note||'')}</textarea>
+        ${canEdit?`<div class="td-sub-actions">
+          <button class="btn btn-primary btn-sm" onclick="saveSubTask('${s.id}')">保存</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteSubTask('${s.id}')">删除</button>
+        </div>`:''}
+      </div>`;
+    });
+  }else{
+    body+=`<div style="color:var(--muted);font-size:13px;padding:6px 0">暂无子任务</div>`;
   }
+  // 添加子任务
+  if(canEdit){
+    body+=`<div class="td-subadd">
+      <div class="td-subadd-title">＋ 添加子任务 / 跟进节点</div>
+      <input type="text" class="td-input" id="nsTitle" placeholder="子任务描述（如：合同会签 / 1对1沟通 / 物料采购）">
+      <div class="td-subadd-row">
+        <select class="td-input" id="nsStatus">${STATUS_OPT('进行中')}</select>
+        <input type="date" class="td-input" id="nsDue" title="期望完成日">
+        <input type="text" class="td-input" id="nsNote" placeholder="备注（可选）">
+        <button class="btn btn-primary btn-sm" onclick="addSubTask('${t.id}')">＋ 添加</button>
+      </div>
+    </div>`;
+  }
+  body+=`</div>`;
   document.getElementById('tdBody').innerHTML=body;
   document.getElementById('taskDetailModal').classList.remove('hidden');
+}
+
+/* 任务详情弹窗里的子任务 / 主任务 API（云端模式） */
+async function addSubTask(parentId){
+  if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const title=(document.getElementById('nsTitle').value||'').trim();
+  const status=document.getElementById('nsStatus').value;
+  const due=document.getElementById('nsDue').value||null;
+  const note=(document.getElementById('nsNote').value||'').trim();
+  if(!title){ toast('⚠️ 子任务描述不能为空'); return; }
+  const parent=_fp.find(x=>x.id===parentId); if(!parent) return;
+  const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
+  const {data, error}=await supa.from('tasks').insert({
+    union_id:parent.union_id, report_to_union:parent.report_to_union,
+    parent_id:parentId, title, status, due_date:due, note,
+    created_date: todayStr()
+  }).select('id').single();
+  if(error){ toast('❌ 添加失败：'+error.message); return; }
+  if(!_fc[parentId]) _fc[parentId]=[];
+  _fc[parentId].push({id:data.id,title,status,due_date:due,note,union_id:parent.union_id,parent_id:parentId,report_to_union:parent.report_to_union,created_date:todayStr()});
+  toast('✅ 已添加子任务');
+  closeTaskDetail(); setTimeout(()=>openTaskDetail(parentId),50);
+  loadFollow();
+}
+async function saveSubTask(id){
+  if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const row=document.querySelector(`.td-subrow[data-sub-id="${id}"]`);
+  if(!row) return;
+  const title=(row.querySelector('.td-sub-title').value||'').trim();
+  const status=row.querySelector('.td-sub-status').value;
+  const due=row.querySelector('.td-sub-due').value||null;
+  const note=(row.querySelector('.td-sub-note').value||'').trim();
+  if(!title){ toast('⚠️ 子任务描述不能为空'); return; }
+  const completed = status==='已完成' ? todayStr() : null;
+  const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
+  const {error}=await supa.from('tasks').update({
+    title,status,due_date:due,note,completed_date:completed,updated_at:new Date().toISOString()
+  }).eq('id',id).eq('union_id', meUid);
+  if(error){ toast('❌ 保存失败：'+error.message); return; }
+  // 本地缓存同步
+  for(const k of Object.keys(_fc)){
+    const i=_fc[k].findIndex(x=>x.id===id);
+    if(i>=0){ _fc[k][i]={..._fc[k][i],title,status,due_date:due,note,completed_date:completed}; break; }
+  }
+  toast('✅ 已保存');
+  loadFollow();
+}
+async function deleteSubTask(id){
+  if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  if(!confirm('确认删除该子任务？\n（仅能删除你本人创建的子任务）')) return;
+  const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
+  const {error}=await supa.from('tasks').delete().eq('id',id).eq('union_id',meUid);
+  if(error){ toast('❌ 删除失败：'+error.message); return; }
+  // 清理缓存
+  for(const k of Object.keys(_fc)){
+    const i=_fc[k].findIndex(x=>x.id===id);
+    if(i>=0){ _fc[k].splice(i,1); break; }
+  }
+  toast('✅ 已删除子任务');
+  closeTaskDetail();
+  loadFollow();
+}
+async function saveParentTask(id){
+  if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const status=document.getElementById('tdStatus').value;
+  const due=document.getElementById('tdDue').value||null;
+  const note=(document.getElementById('tdNote').value||'').trim();
+  const completed = status==='已完成' ? todayStr() : null;
+  const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
+  const {error}=await supa.from('tasks').update({
+    status,due_date:due,note,completed_date:completed,updated_at:new Date().toISOString()
+  }).eq('id',id).eq('union_id',meUid);
+  if(error){ toast('❌ 保存失败：'+error.message); return; }
+  // 更新本地
+  const t=_fp.find(x=>x.id===id);
+  if(t){ t.status=status; t.due_date=due; t.note=note; t.completed_date=completed; }
+  toast('✅ 主任务已保存');
+  loadFollow();
 }
 function closeTaskDetail(){ document.getElementById('taskDetailModal').classList.add('hidden'); }
 
