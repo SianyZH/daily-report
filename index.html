@@ -1295,7 +1295,7 @@ function switchPage(p){
     document.body.classList.remove('login-visible');
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));
   }
-  ['login','fill','list','generate','settings'].forEach(x=>{
+  ['login','fill','list','generate','settings','follow'].forEach(x=>{
     const el=document.getElementById('page-'+x);
     if(el) el.classList.toggle('hidden',x!==p);
   });
