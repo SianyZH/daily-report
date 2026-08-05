@@ -66,7 +66,8 @@
   table.tasks td{border-top:1px solid var(--border);padding:0;vertical-align:top}
   .tnum{padding:14px 6px;font-weight:700;color:var(--primary);width:54px;display:flex;align-items:center;justify-content:center;gap:3px;text-align:center}
   table.tasks th:nth-child(1){width:50px}
-  table.tasks th:nth-child(3){width:42%}
+  table.tasks th:nth-child(3){width:96px}
+  table.tasks th:nth-child(4){width:38%}
   .drag-handle{cursor:grab;color:var(--muted);font-size:13px;line-height:1;user-select:none;flex:0 0 auto;opacity:.5;transition:opacity .15s}
   .drag-handle:hover{opacity:1;color:var(--primary)}
   .drag-handle:active{cursor:grabbing}
@@ -197,6 +198,65 @@
     .report-item{padding:14px}
   }
 </style>
+<style>
+/* ===== 任务跟进页 ===== */
+.follow-roles{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.follow-views{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.view-tab,.role-tab{padding:8px 18px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--muted);transition:.2s;font-family:inherit}
+.view-tab.active,.role-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.follow-stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-bottom:20px}
+.follow-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:4px}
+.fcol-h{font-size:14px;font-weight:700;padding:11px 14px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center}
+.fcol-doing{background:rgba(59,130,246,.12);color:#1d4ed8}
+.fcol-block{background:rgba(239,68,68,.14);color:#b91c1c}
+.fcol-todo{background:rgba(100,116,139,.16);color:#475569}
+.fcol-done{background:rgba(34,197,94,.14);color:#15803d}
+.fcol{background:var(--card);border-radius:0 0 12px 12px;box-shadow:var(--shadow);padding:10px}
+.task-card{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--bg);cursor:pointer;transition:.15s}
+.task-card:hover{border-color:var(--primary);box-shadow:0 4px 14px rgba(91,110,245,.12)}
+.task-card.overdue{border-color:#fca5a5;background:#fff5f5}
+.tc-title{font-weight:600;font-size:14px;line-height:1.4}
+.tc-meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tc-tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.tag-overdue{background:#fee2e2;color:#b91c1c}
+.tag-due{background:#e0f2fe;color:#0369a1}
+.tag-note{background:#f1f5f9;color:#475569;font-weight:400;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub-list{margin-top:8px;padding-left:12px;border-left:2px solid var(--border)}
+.sub-item{font-size:13px;padding:4px 0;color:var(--text);display:flex;gap:8px;align-items:baseline}
+.sub-item .s-st{font-size:11px;font-weight:600;flex:0 0 auto}
+.sub-item .s-done{color:#15803d}.sub-item .s-doing{color:#1d4ed8}.sub-item .s-block{color:#b91c1c}.sub-item .s-todo{color:#64748b}
+/* 日视图时间线 */
+.tl-day{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px}
+.tl-sec{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 8px;text-transform:none;letter-spacing:0}
+.tl-item{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:0 0 auto}
+/* 月视图 */
+.month-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.week-col{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:14px}
+.week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
+.week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
+.week-col .wc-item:last-child{border-bottom:none}
+/* 表单内任务元信息行（状态/备注/到期/子任务） */
+.task-meta{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.task-meta select.t-status{width:96px;border:2px solid var(--border);border-radius:8px;padding:5px 6px;font-size:13px;font-family:inherit;background:#fff;color:var(--text)}
+.task-meta input.t-due{width:auto;flex:1;min-width:124px;padding:5px 8px;font-size:12px;border:2px solid var(--border);border-radius:8px;font-family:inherit}
+.t-sub-btn{border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--primary);font-family:inherit;white-space:nowrap}
+.t-sub-btn:hover{background:var(--primary);color:#fff}
+.sub-wrap{border-top:1px dashed var(--border);margin-top:8px;padding-top:8px}
+.sub-row{display:flex;gap:6px;margin-top:6px;align-items:flex-start}
+.sub-row textarea{flex:1;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;resize:vertical;min-height:34px}
+.sub-row select{width:84px;border:1px solid var(--border);border-radius:8px;padding:6px;font-size:12px;font-family:inherit}
+.sub-row .sub-del{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
+.sub-row .sub-del:hover{color:#e5484d}
+/* 任务详情弹窗 */
+.td-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.td-title{font-size:16px;font-weight:700;margin-bottom:8px}
+.td-row{font-size:13px;color:var(--text);margin:5px 0;display:flex;gap:8px}
+.td-row .td-k{color:var(--muted);flex:0 0 76px}
+.td-sub{margin-top:10px;border-top:1px dashed var(--border);padding-top:8px}
+.td-note{background:#fff;border-left:3px solid var(--primary);border-radius:6px;padding:8px 10px;font-size:13px;margin-top:6px}
+</style>
 <script src="sortable.min.js"></script>
 </head>
 <body>
@@ -207,6 +267,7 @@
     <div class="brand-title">📋 智能日报</div>
     <div class="nav-item active" data-page="fill"><span class="nav-icon">✍️</span> 填写日报</div>
     <div class="nav-item" data-page="list"><span class="nav-icon">📚</span> 日报列表</div>
+    <div class="nav-item" data-page="follow"><span class="nav-icon">📋</span> 任务跟进</div>
     <div class="nav-item" data-page="generate"><span class="nav-icon">🤖</span> 生成周报月报</div>
     <div class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span> 设置</div>
     <div class="sidebar-foot">Powered by DeepSeek V4<br>© 2026 智能日报系统</div>
@@ -275,6 +336,7 @@
         <div class="btn-row">
           <button class="btn btn-primary" id="saveBtn" onclick="saveReport()">💾 提交日报</button>
           <button class="btn btn-ghost" onclick="clearForm()">🗑️ 清空</button>
+          <button class="btn btn-ghost" onclick="bringUnfinished()" title="把我的未完成（非「已完成」）任务一键带入今日表单，继续跟进">📥 带入未完成</button>
           <button class="btn btn-ghost" id="calImportBtn" onclick="importFromCalendar()" title="一键把所选日期的钉钉日历日程填入任务描述（首次需授权读取日历）">📅 从钉钉日历导入</button>
         </div>
         <div class="hint" id="calHint">📅 点「从钉钉日历导入」可把所选日期的钉钉日程自动填进任务描述（结果需手动补）。首次使用会请求读取日历授权。</div>
@@ -308,6 +370,33 @@
       <div class="card">
         <div id="reportList"></div>
       </div>
+    </section>
+
+    <!-- ============ PAGE: FOLLOW (任务跟进) ============ -->
+    <section id="page-follow" class="hidden">
+      <div class="page-head">
+        <div>
+          <div class="page-title">📋 任务跟进</div>
+          <div class="page-sub">跨天汇聚所有在手任务，按状态一目了然</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadFollow()">🔄 刷新</button>
+      </div>
+
+      <div class="follow-roles" id="followRoles">
+        <div class="role-tab active" data-role="mine" onclick="switchFollowRole('mine')">👤 我的任务</div>
+        <div class="role-tab" data-role="sub" id="roleSub" onclick="switchFollowRole('sub')">👥 下属任务</div>
+        <div class="role-tab" data-role="team" id="roleTeam" onclick="switchFollowRole('team')">🏢 团队总览</div>
+      </div>
+
+      <div class="follow-views">
+        <div class="view-tab active" data-view="week" onclick="switchFollowView('week')">🗓️ 周视图</div>
+        <div class="view-tab" data-view="day" onclick="switchFollowView('day')">📅 日视图</div>
+        <div class="view-tab" data-view="month" onclick="switchFollowView('month')">📆 月视图</div>
+      </div>
+
+      <div class="follow-stat" id="followStat"></div>
+
+      <div id="followBoard"></div>
     </section>
 
     <!-- ============ PAGE: GENERATE ============ -->
@@ -508,6 +597,17 @@
     <div id="rdBody" class="rd-body"></div>
     <div class="privacy-actions">
       <button class="btn btn-ghost" onclick="closeReportDetail()">关闭</button>
+    </div>
+  </div>
+</div>
+<!-- 任务详情弹窗（任务跟进页） -->
+<div id="taskDetailModal" class="privacy-modal hidden">
+  <div class="privacy-box" style="max-width:600px">
+    <button class="privacy-close" onclick="closeTaskDetail()" title="关闭">×</button>
+    <div id="tdHead"></div>
+    <div id="tdBody" class="td-body"></div>
+    <div class="privacy-actions">
+      <button class="btn btn-ghost" onclick="closeTaskDetail()">关闭</button>
     </div>
   </div>
 </div>
@@ -995,18 +1095,55 @@ async function init(){
 }
 
 /* ---------- 任务行：动态增删，支持表格批量粘贴 ---------- */
-/** 追加一行任务输入框，返回该行序号（1 起） */
-function addTaskRow(){
+/** 追加一行任务输入框，返回该行序号（1 起）。init 可预填 {desc,status,note,due,subtasks,task_id} */
+function addTaskRow(init){
   const tb=document.getElementById('taskBody');
   const i=tb.children.length+1;
+  const t = init || {desc:'', status:'进行中', note:'', due:'', subtasks:[], task_id:''};
+  const sel = (v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="tnum"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></td>
-    <td><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="2"></textarea></td>
-    <td class="col-res"><textarea class="t-res" data-i="${i}" placeholder="如：已完成 / 进行中 / 已延期" rows="2"></textarea></td>`;
+  tr.innerHTML=`<td class="tnum"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
+    <td><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="2">${esc(t.desc||'')}</textarea></td>
+    <td>
+      <select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select>
+    </td>
+    <td class="col-res">
+      <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
+      <div class="task-meta">
+        <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
+        <button type="button" class="t-sub-btn" onclick="toggleSubWrap(this)">＋子任务</button>
+      </div>
+      <div class="sub-wrap hidden" data-i="${i}">
+        <div class="sub-list-edit"></div>
+        <button type="button" class="t-sub-btn" onclick="addSubRow(this)">＋ 添加子任务</button>
+      </div>
+    </td>`;
   tb.appendChild(tr);
-  // 绑定草稿自动保存（动态行也要生效）
-  tr.querySelectorAll('textarea').forEach(t=>t.addEventListener('input',saveDraft));
+  tr.querySelectorAll('textarea,select,input').forEach(el=>el.addEventListener('input',saveDraft));
+  if(t.subtasks && t.subtasks.length){
+    const wrap = tr.querySelector('.sub-wrap'); wrap.classList.remove('hidden');
+    t.subtasks.forEach(s=>addSubRow(wrap.querySelector('.t-sub-btn'), s));
+  }
   return i;
+}
+/** 展开/收起子任务编辑区 */
+function toggleSubWrap(btn){
+  const wrap = btn.closest('td').querySelector('.sub-wrap');
+  if(wrap) wrap.classList.toggle('hidden');
+  saveDraft();
+}
+/** 新增一行子任务输入（init 可预填 {desc,status,note}） */
+function addSubRow(btn, init){
+  const wrap = btn.closest('.sub-wrap');
+  if(!wrap) return;
+  const s = init || {desc:'', status:'进行中', note:''};
+  const row=document.createElement('div');
+  row.className='sub-row';
+  row.innerHTML=`<textarea class="s-desc" rows="1" placeholder="子任务 / 跟进节点">${esc(s.desc||'')}</textarea>
+    <select class="s-status"><option value="进行中"${s.status==='进行中'?' selected':''}>进行中</option><option value="已完成"${s.status==='已完成'?' selected':''}>已完成</option><option value="阻塞"${s.status==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${s.status==='待开始'?' selected':''}>待开始</option></select>
+    <button type="button" class="sub-del" title="删除" onclick="this.closest('.sub-row').remove();saveDraft()">×</button>`;
+  wrap.querySelector('.sub-list-edit').appendChild(row);
+  row.querySelectorAll('textarea,select').forEach(el=>el.addEventListener('input',saveDraft));
 }
 /** 当前任务行数 */
 function taskRowCount(){ return document.getElementById('taskBody').children.length; }
@@ -1020,8 +1157,9 @@ function renumberTasks(){
   Array.from(tb.children).forEach((tr,idx)=>{
     const n=idx+1;
     const nt=tr.querySelector('.tnum-text'); if(nt) nt.textContent=n;
-    const de=tr.querySelector('.t-desc'); if(de) de.setAttribute('data-i',n);
-    const re=tr.querySelector('.t-res'); if(re) re.setAttribute('data-i',n);
+    ['t-desc','t-status','t-note','t-due','t-taskid','sub-wrap'].forEach(cls=>{
+      const el=tr.querySelector('.'+cls); if(el) el.setAttribute('data-i',n);
+    });
   });
 }
 /** 初始化任务表拖拽（手柄触发；触摸端长按 120ms 避免与滚动冲突） */
@@ -1068,13 +1206,15 @@ function onTaskPaste(e){
     const cols=line.split('\t');
     const r=start+k;
     const de=document.querySelector(`#taskBody tr:nth-child(${r+1}) .t-desc`);
-    const re=document.querySelector(`#taskBody tr:nth-child(${r+1}) .t-res`);
+    const ne=document.querySelector(`#taskBody tr:nth-child(${r+1}) .t-note`);
+    const st=document.querySelector(`#taskBody tr:nth-child(${r+1}) .t-status`);
     if(de) de.value=(cols[0]||'').trim();
-    if(re) re.value=(cols[1]||'').trim();
+    if(ne) ne.value=(cols[1]||'').trim();
+    if(st) st.value=inferStatus(cols[1]||'');   // 粘贴的"结果"列自动推断状态
   });
   saveDraft();
-  const lastRe=document.querySelector(`#taskBody tr:nth-child(${start+rows.length}) .t-res`);
-  if(lastRe) lastRe.focus();
+  const lastNe=document.querySelector(`#taskBody tr:nth-child(${start+rows.length}) .t-note`);
+  if(lastNe) lastNe.focus();
   toast(`✅ 已粘贴 ${rows.length} 行任务`);
 }
 
@@ -1161,6 +1301,7 @@ function switchPage(p){
   });
   if(p==='list') loadReports();
   if(p==='generate'){ populatePersonSelects(); quickRange('week'); }
+  if(p==='follow'){ loadFollow(); }
   if(p==='settings'){ loadTeamMembers(); loadUserSettings(); loadAuditLog(); }
 }
 
@@ -1849,22 +1990,33 @@ function clearDraftForDate(date){
 function restoreTodayDraft(){
   const d=getDrafts()[todayStr()];
   if(!d) return;
-  if(!localStorage.getItem(LS.dtToken)) document.getElementById('tplName').value=d.tplName||'I';
-  setRepTo(d.reportTo||'');
-  (d.tasks||[]).forEach((t,i)=>{
-    ensureTaskRows(i+1);
-    const de=document.querySelector(`.t-desc[data-i="${i+1}"]`);
-    const re=document.querySelector(`.t-res[data-i="${i+1}"]`);
-    if(de)de.value=t.desc||''; if(re)re.value=t.result||'';
-  });
-  syncAvatar(document.getElementById('tplName').value);
+  fillFormFromRecord(d);
 }
 function collectForm(){
   const tasks=[];
   document.querySelectorAll('#taskBody tr').forEach(tr=>{
-    const desc=tr.querySelector('.t-desc').value.trim();
-    const result=tr.querySelector('.t-res').value.trim();
-    tasks.push({desc,result});
+    const desc=(tr.querySelector('.t-desc').value||'').trim();
+    const status=normalizeStatus(tr.querySelector('.t-status').value);
+    const note=(tr.querySelector('.t-note').value||'').trim();
+    const due=(tr.querySelector('.t-due').value||'');
+    const taskId=(tr.querySelector('.t-taskid').value||'')||'';
+    // 子任务（仅取有描述的）
+    let subtasks=[];
+    const wrap=tr.querySelector('.sub-wrap');
+    if(wrap){
+      wrap.querySelectorAll('.sub-row').forEach(sr=>{
+        const sd=(sr.querySelector('.s-desc').value||'').trim();
+        if(!sd) return;
+        subtasks.push({ desc:sd, status:normalizeStatus(sr.querySelector('.s-status').value), note:'' });
+      });
+    }
+    // 跳过完全空行（描述、备注、子任务均无）
+    if(!desc && !note && subtasks.length===0) return;
+    tasks.push({
+      desc, status, note, due, subtasks,
+      task_id: taskId,
+      result: composeResult(status, note)   // 兼容字段：供 AI 生成 / 旧列表详情展示
+    });
   });
   const repToSel=document.getElementById('repTo');
   const reportToUnion = repToSel && repToSel.selectedOptions && repToSel.selectedOptions[0]
@@ -1888,7 +2040,7 @@ async function saveReport(){
     d.reportToUnion = await resolveReportToUnion(d.reportTo);
   }
   if(!d.reporter || d.reporter === 'I'){ toast('⚠️ 请先填写你的名字（或点击「钉钉登录」自动获取）'); switchPage('fill'); return; }
-  const filled=d.tasks.filter(t=>t.desc||t.result);
+  const filled=d.tasks.filter(t=>t.desc||t.note);
   if(filled.length===0){ toast('⚠️ 请至少填写一条任务'); return; }
   if(!d.reportTo){ toast('⚠️ 请选择你的直属上级（PLS REPORT TO 必填）'); switchPage('fill'); return; }
 
@@ -1904,11 +2056,12 @@ async function saveReport(){
   const authName=dtUser?dtUser.nick:d.reporter;
   const authUnion=dtUser?(dtUser.unionId||dtUser.union_id):null;
 
+  const baseTasks = d.tasks.filter(t=>t.desc||t.note);
   const record={
     user_name:authName, report_date:d.date, title:d.tplName,
     report_to:d.reportTo, report_to_union:d.reportToUnion,
     union_id:authUnion,
-    tasks:d.tasks.filter(t=>t.desc||t.result)
+    tasks:baseTasks
   };
 
   try{
@@ -1921,16 +2074,34 @@ async function saveReport(){
       }
       // 同一人同一天：先删后插（覆盖）。用不可篡改的 union_id 作过滤，确保 RLS 通过
       await supa.from('daily_reports').delete().eq('union_id',authUnion).eq('report_date',d.date);
-      const {error}=await supa.from('daily_reports').insert(record);
+      const {data:ins, error}=await supa.from('daily_reports').insert(record).select('id').single();
       if(error){
-        // JWT 过期特殊提示
         if((error.message||'').includes('JWT expired')||error.code==='PGRST301'){
           promptRelogin('登录已过期'); return;
         }
         throw error;
       }
+      const reportId = ins && ins.id;
+      // 同步写入 tasks 表（任务成为一等实体，支撑「任务跟进」视图）
+      for(const t of baseTasks){
+        try{
+          t.task_id = await upsertTask(t, authUnion, d.reportToUnion, d.date, reportId);
+          if(t.subtasks && t.subtasks.length){
+            for(const s of t.subtasks){
+              await supa.from('tasks').insert({
+                union_id:authUnion, report_to_union:d.reportToUnion, parent_id:t.task_id,
+                title:s.desc, status:s.status||'进行中', note:s.note||'', created_date:d.date
+              });
+            }
+          }
+        }catch(te){ console.error('[task upsert]', te); }
+      }
+      // 把回填后的 task_id 写回日报，便于列表/详情关联
+      if(reportId){
+        await supa.from('daily_reports').update({ tasks: baseTasks }).eq('id', reportId);
+      }
       toast('✅ 日报已提交到云端');
-      logAudit('report_submit', { date: d.date, name: authName });
+      logAudit('report_submit', { date: d.date, name: authName, tasks: baseTasks.length });
     }else{
       saveLocal(record);
       toast('✅ 已保存到本机（未配置云端，仅本设备可见）');
@@ -1941,6 +2112,25 @@ async function saveReport(){
   }finally{
     btn.disabled=false; btn.innerHTML='💾 提交日报';
   }
+}
+
+/** 把一条任务同步进 tasks 表：已有 task_id 则更新，否则新建；返回 tasks.id（uuid 字符串） */
+async function upsertTask(t, uid, reportToUnion, date, reportId){
+  const completed = t.status==='已完成' ? date : null;
+  if(t.task_id){
+    const {error}=await supa.from('tasks')
+      .update({ status:t.status, note:t.note||'', due_date:t.due||null, report_to_union:reportToUnion, completed_date:completed, updated_at:new Date().toISOString() })
+      .eq('id', t.task_id).eq('union_id', uid);
+    if(error) console.warn('[task] update failed', error);
+    return t.task_id;
+  }
+  const {data, error}=await supa.from('tasks').insert({
+    union_id:uid, report_to_union:reportToUnion, parent_id:null,
+    title:t.desc, status:t.status, note:t.note||'', due_date:t.due||null,
+    created_date:date, completed_date:completed, source_report_id:reportId
+  }).select('id').single();
+  if(error) throw error;
+  return data.id;
 }
 
 function saveLocal(rec){
@@ -1957,7 +2147,7 @@ async function clearForm(){
   if(!localStorage.getItem(LS.dtToken)){
     document.getElementById('tplName').value='I';
   }
-  document.querySelectorAll('.t-desc,.t-res').forEach(t=>t.value='');
+  clearAllTaskRows();
   clearDraftForDate(document.getElementById('repDate').value);
   // 汇报人默认带入上次提交的值，避免每次重选
   const lastTo=await findLastReportTo();
@@ -2120,22 +2310,49 @@ function fillFormFromRecord(rec){
   }
   setRepTo(rec.report_to || rec.reportTo || '');
   const tasks = rec.tasks || [];
-  // 先清空所有任务框（保留行），再按数据填入，行数不足自动增补
-  document.querySelectorAll('.t-desc,.t-res').forEach(t=>t.value='');
+  // 先清空所有任务框与状态/日期/子任务（保留行），再按数据填入，行数不足自动增补
+  document.querySelectorAll('#taskBody tr').forEach(tr=>{
+    const de=tr.querySelector('.t-desc'); if(de) de.value='';
+    const ne=tr.querySelector('.t-note'); if(ne) ne.value='';
+    const st=tr.querySelector('.t-status'); if(st) st.value='进行中';
+    const due=tr.querySelector('.t-due'); if(due) due.value='';
+    const tid=tr.querySelector('.t-taskid'); if(tid) tid.value='';
+    const sw=tr.querySelector('.sub-wrap');
+    if(sw){ sw.classList.add('hidden'); const sl=sw.querySelector('.sub-list-edit'); if(sl) sl.innerHTML=''; }
+  });
   ensureTaskRows(Math.max(TASKS, tasks.length));
   tasks.forEach((t,i)=>{
     const de=document.querySelector(`.t-desc[data-i="${i+1}"]`);
-    const re=document.querySelector(`.t-res[data-i="${i+1}"]`);
-    if(de)de.value=t.desc||'';
-    if(re)re.value=t.result||'';
+    const st=document.querySelector(`.t-status[data-i="${i+1}"]`);
+    const ne=document.querySelector(`.t-note[data-i="${i+1}"]`);
+    const due=document.querySelector(`.t-due[data-i="${i+1}"]`);
+    const tid=document.querySelector(`.t-taskid[data-i="${i+1}"]`);
+    if(de) de.value=t.desc||'';
+    if(ne) ne.value=t.note!=null?t.note:(t.result||'');
+    if(st) st.value=normalizeStatus(t.status) || inferStatus(t.result||t.note||'');
+    if(due) due.value=t.due||'';
+    if(tid) tid.value=t.task_id||'';
   });
   syncAvatar(document.getElementById('tplName').value);
 }
 
+/** 清空所有任务行（描述/状态/备注/到期/子任务/隐藏 id）但保留行数 */
+function clearAllTaskRows(){
+  document.querySelectorAll('#taskBody tr').forEach(tr=>{
+    const de=tr.querySelector('.t-desc'); if(de) de.value='';
+    const ne=tr.querySelector('.t-note'); if(ne) ne.value='';
+    const st=tr.querySelector('.t-status'); if(st) st.value='进行中';
+    const due=tr.querySelector('.t-due'); if(due) due.value='';
+    const tid=tr.querySelector('.t-taskid'); if(tid) tid.value='';
+    const sw=tr.querySelector('.sub-wrap');
+    if(sw){ sw.classList.add('hidden'); const sl=sw.querySelector('.sub-list-edit'); if(sl) sl.innerHTML=''; }
+    saveDraft();
+  });
+}
 /** 清空表单但保留姓名（切换到一个没有记录的日期时调用）；汇报人默认带出上次提交的值 */
 async function clearFormKeepName(){
   if(!localStorage.getItem(LS.dtToken)) document.getElementById('tplName').value='I';
-  document.querySelectorAll('.t-desc,.t-res').forEach(t=>t.value='');
+  clearAllTaskRows();
   clearDraftForDate(document.getElementById('repDate').value);
   // 汇报人默认 = 上次提交的汇报对象（无则空）
   const lastTo=await findLastReportTo();
@@ -2234,6 +2451,25 @@ function statusClass(t){
   if(/进行中|推进中|跟进中|处理中|待|pending|进行|跟进/i.test(t)) return 'st-doing';
   if(/延期|阻塞|风险|问题|失败|未达|delay|fail|异常|卡/i.test(t)) return 'st-risk';
   return 'st-other';
+}
+/** 把自由文本（历史 result / 粘贴的"结果"列）规范为 4 态之一；无法识别默认「进行中」 */
+function inferStatus(text){
+  const s=(text||'').trim();
+  if(/完成|已结|交付|通过|达标|done|ok|finish/i.test(s)) return '已完成';
+  if(/阻塞|卡|延期|风险|问题|失败|未达|delay|fail|异常/i.test(s)) return '阻塞';
+  if(/待开始|未开始|还没|尚未|待办/i.test(s)) return '待开始';
+  if(s) return '进行中';
+  return '进行中';
+}
+/** 规范化状态为枚举 4 值（防止脏数据进入 select / 数据库） */
+function normalizeStatus(s){
+  return (['进行中','已完成','阻塞','待开始'].includes(s)) ? s : '进行中';
+}
+/** 组合 status + note 成兼容字段 result（供 AI 生成与旧列表/详情展示使用） */
+function composeResult(status, note){
+  const st=normalizeStatus(status);
+  if(!note || !note.trim()) return st;
+  return `${st}，${note.trim()}`;
 }
 function closeReportDetail(){ document.getElementById('reportDetailModal').classList.add('hidden'); }
 // 点击遮罩关闭
@@ -2510,6 +2746,196 @@ function todayStr(){
   const day=String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
+
+/* ========== 任务跟进页 ========== */
+let followRole='mine', followView='week';
+let _fp=[], _fc={};  // 缓存：父任务列表 / parent_id→子任务映射
+
+function switchFollowRole(r){
+  followRole=r;
+  document.querySelectorAll('.role-tab').forEach(t=>t.classList.toggle('active',t.dataset.role===r));
+  loadFollow();
+}
+function switchFollowView(v){
+  followView=v;
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  loadFollow();
+}
+
+/** 一键带入我的未完成任务到今日表单（不含子任务，子任务仍在 tasks 表、跟进页可见） */
+async function bringUnfinished(){
+  const uid=authUnionId();
+  if(!supa || !uid){ toast('⚠️ 请先登录并连接云端'); return; }
+  try{
+    const {data,error}=await supa.from('tasks')
+      .select('id,title,status,note,due_date')
+      .eq('union_id',uid).neq('status','已完成')
+      .order('created_date',{ascending:false});
+    if(error) throw error;
+    if(!data || !data.length){ toast('🎉 当前没有未完成的任务'); return; }
+    data.forEach(t=>{
+      addTaskRow({ desc:t.title, status:t.status, note:t.note||'', due:t.due_date||'', task_id:t.id, subtasks:[] });
+    });
+    saveDraft();
+    toast(`📥 已带入 ${data.length} 条未完成任务（可继续补充后提交）`);
+  }catch(e){ toast('❌ 带入失败：'+e.message); }
+}
+
+async function loadFollow(){
+  const board=document.getElementById('followBoard');
+  const stat=document.getElementById('followStat');
+  if(!board || !stat) return;
+  const uid=authUnionId();
+  const admin=isAdmin();
+  // 角色可用性：下属需已登录；团队总览仅管理员
+  if(document.getElementById('roleSub')) document.getElementById('roleSub').style.display = uid ? '' : 'none';
+  if(document.getElementById('roleTeam')) document.getElementById('roleTeam').style.display = admin ? '' : 'none';
+  if((followRole==='sub' && !uid) || (followRole==='team' && !admin)){
+    followRole='mine';
+    document.querySelectorAll('.role-tab').forEach(t=>t.classList.toggle('active',t.dataset.role==='mine'));
+  }
+  if(!supa){ board.innerHTML='<div class="empty"><div class="empty-icon">🔒</div>请先登录并连接云端</div>'; stat.innerHTML=''; return; }
+  if(!uid){ board.innerHTML='<div class="empty"><div class="empty-icon">🔒</div>请先登录</div>'; stat.innerHTML=''; return; }
+  board.innerHTML='<div class="empty"><div class="empty-icon">⏳</div>加载中...</div>'; stat.innerHTML='';
+  try{
+    let q=supa.from('tasks').select('*');
+    if(followRole==='mine') q=q.eq('union_id',uid);
+    else if(followRole==='sub') q=q.eq('report_to_union',uid);
+    // team：管理员看全部（RLS 已限制）
+    const {data,error}=await q.order('created_date',{ascending:false});
+    if(error) throw error;
+    const rows=data||[];
+    const parents=rows.filter(r=>!r.parent_id);
+    const children=rows.filter(r=>r.parent_id);
+    const childMap={}; children.forEach(c=>{ (childMap[c.parent_id]=childMap[c.parent_id]||[]).push(c); });
+    _fp=parents; _fc=childMap;
+    renderFollow(parents, childMap, stat, board);
+  }catch(e){
+    board.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div>加载失败：'+esc(e.message)+'</div>';
+  }
+}
+
+function renderFollow(parents, childMap, stat, board){
+  const cnt={进行中:0,阻塞:0,待开始:0,已完成:0};
+  parents.forEach(p=>{ cnt[p.status]=(cnt[p.status]||0)+1; });
+  stat.innerHTML=
+    `<div class="stat"><div class="stat-num" style="color:#1d4ed8">${cnt['进行中']}</div><div class="stat-label">进行中</div></div>`+
+    `<div class="stat"><div class="stat-num" style="color:#b91c1c">${cnt['阻塞']}</div><div class="stat-label">阻塞</div></div>`+
+    `<div class="stat"><div class="stat-num" style="color:#64748b">${cnt['待开始']}</div><div class="stat-label">待开始</div></div>`+
+    `<div class="stat"><div class="stat-num" style="color:#15803d">${cnt['已完成']}</div><div class="stat-label">已完成</div></div>`;
+  if(parents.length===0){
+    board.innerHTML='<div class="empty"><div class="empty-icon">📭</div>暂无任务（去「填写日报」提交后会自动进入这里）</div>';
+    return;
+  }
+  if(followView==='week'){
+    const cols=[
+      {key:'进行中',cls:'fcol-doing',label:'🟦 进行中'},
+      {key:'阻塞',cls:'fcol-block',label:'🟥 阻塞'},
+      {key:'待开始',cls:'fcol-todo',label:'⚪ 待开始'},
+      {key:'已完成',cls:'fcol-done',label:'🟩 已完成'}
+    ];
+    board.innerHTML='<div class="follow-board">'+cols.map(col=>{
+      const list=parents.filter(p=>p.status===col.key);
+      const body=list.length? list.map(p=>taskCardHtml(p, childMap[p.id])).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px">暂无</div>';
+      return `<div><div class="fcol-h ${col.cls}"><span>${col.label}</span><span>${list.length}</span></div><div class="fcol">${body}</div></div>`;
+    }).join('')+'</div>';
+  } else if(followView==='day'){
+    renderDayView(parents, childMap, board);
+  } else {
+    renderMonthView(parents, childMap, board);
+  }
+}
+
+function taskCardHtml(t, children){
+  const today=todayStr();
+  const overdue = t.due_date && t.due_date < today && t.status!=='已完成';
+  const ref = t.status==='已完成' ? (t.completed_date||today) : today;
+  const days = followDays(t.created_date, ref);
+  const note = t.note ? `<span class="tc-tag tag-note" title="${esc(t.note)}">${esc(t.note.length>28?t.note.slice(0,28)+'…':t.note)}</span>` : '';
+  const due = t.due_date ? `<span class="tc-tag tag-due">📅 ${t.due_date}</span>` : '';
+  const overdueTag = overdue ? `<span class="tc-tag tag-overdue">⚠️ 逾期</span>` : '';
+  let subs='';
+  if(children && children.length){
+    subs='<div class="sub-list">'+children.map(c=>`<div class="sub-item"><span class="s-st s-${subCls(c.status)}">${c.status}</span><span>${esc(c.title||'')}${c.note?': '+esc(c.note):''}</span></div>`).join('')+'</div>';
+  }
+  return `<div class="task-card ${overdue?'overdue':''}" onclick="openTaskDetail('${t.id}')">
+    <div class="tc-title">${esc(t.title||'(无标题)')}</div>
+    <div class="tc-meta">
+      <span class="rd-status ${statusClass(t.status)}">${t.status}</span>
+      ${due}${overdueTag}
+      <span>📆 ${t.created_date} 起 · 跟进 ${days}天</span>
+      ${note}
+    </div>
+    ${subs}
+  </div>`;
+}
+function followDays(created, ref){
+  if(!created) return 0;
+  const c=new Date(created), r=new Date(ref);
+  const d=Math.round((r-c)/86400000);
+  return d<0?0:d;
+}
+function subCls(s){ return ({'已完成':'done','进行中':'doing','阻塞':'block','待开始':'todo'})[s]||'todo'; }
+
+function renderDayView(parents, childMap, board){
+  const today=todayStr();
+  const open=parents.filter(p=>p.status!=='已完成');
+  const doneToday=parents.filter(p=>p.status==='已完成' && p.completed_date===today);
+  let html='<div class="tl-day">';
+  html+=`<div class="tl-sec">🔵 进行中 / 待跟进（${open.length}）</div>`;
+  html+= open.length? open.map(p=>`<div class="tl-item"><span class="tl-dot" style="background:#3b82f6"></span><div>${taskCardHtml(p, childMap[p.id])}</div></div>`).join('') : '<div style="color:var(--muted);font-size:13px">暂无</div>';
+  html+=`<div class="tl-sec">✅ 今日完成（${doneToday.length}）</div>`;
+  html+= doneToday.length? doneToday.map(p=>`<div class="tl-item"><span class="tl-dot" style="background:#22c55e"></span><div>${taskCardHtml(p, childMap[p.id])}</div></div>`).join('') : '<div style="color:var(--muted);font-size:13px">暂无</div>';
+  board.innerHTML=html+'</div>';
+}
+function renderMonthView(parents, childMap, board){
+  const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  const weeks={};
+  parents.forEach(p=>{
+    const d=new Date(p.created_date);
+    if(d<first||d>last) return;
+    const k=weekKey(p.created_date);
+    (weeks[k]=weeks[k]||[]).push(p);
+  });
+  const keys=Object.keys(weeks).sort();
+  if(!keys.length){ board.innerHTML='<div class="empty"><div class="empty-icon">📆</div>本月暂无创建的任务</div>'; return; }
+  board.innerHTML='<div class="month-grid">'+keys.map(k=>{
+    const list=weeks[k];
+    return `<div class="week-col"><h4>${k}</h4>`+list.map(p=>`<div class="wc-item"><span>${esc(p.title||'')}</span><span class="rd-status ${statusClass(p.status)}" style="font-size:11px">${p.status}</span></div>`).join('')+'</div>';
+  }).join('')+'</div>';
+}
+function weekKey(dateStr){
+  const d=new Date(dateStr);
+  const day=(d.getDay()||7)-1;
+  const monday=new Date(d); monday.setDate(d.getDate()-day);
+  const sunday=new Date(monday); sunday.setDate(monday.getDate()+6);
+  const f=x=>{const y=x.getFullYear();return `${y}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
+  return `${f(monday)} ~ ${f(sunday)}`;
+}
+
+function openTaskDetail(id){
+  const t=_fp.find(x=>x.id===id); if(!t) return;
+  const subs=_fc[id]||[];
+  const today=todayStr();
+  const ref=t.status==='已完成'?(t.completed_date||today):today;
+  const days=followDays(t.created_date, ref);
+  document.getElementById('tdHead').innerHTML=`<div class="td-title">${esc(t.title||'(无标题)')} <span class="rd-status ${statusClass(t.status)}">${t.status}</span></div>`;
+  let body=`<div class="td-card">
+    <div class="td-row"><span class="td-k">创建日期</span><span>${t.created_date}</span></div>
+    <div class="td-row"><span class="td-k">期望完成</span><span>${t.due_date||'未设置'}</span></div>
+    <div class="td-row"><span class="td-k">跟进时长</span><span>已跟进 ${days} 天</span></div>
+    <div class="td-row"><span class="td-k">状态</span><span>${t.status}</span></div>`;
+  if(t.note) body+=`<div class="td-note">${esc(t.note)}</div>`;
+  body+=`</div>`;
+  if(subs.length){
+    body+=`<div class="td-sub"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px">子任务 / 跟进节点（${subs.length}）</div>`+
+      subs.map(s=>`<div class="td-row"><span class="s-st s-${subCls(s.status)}">${s.status}</span><span>${esc(s.title||'')}${s.note?': '+esc(s.note):''}</span></div>`).join('')+`</div>`;
+  }
+  document.getElementById('tdBody').innerHTML=body;
+  document.getElementById('taskDetailModal').classList.remove('hidden');
+}
+function closeTaskDetail(){ document.getElementById('taskDetailModal').classList.add('hidden'); }
 
 init();
 </script>
