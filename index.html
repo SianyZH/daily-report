@@ -60,11 +60,13 @@
   .field input,.field select,.field textarea{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-size:15px;outline:none;transition:.2s;font-family:inherit;background:#fff;color:var(--text)}
   .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(91,110,245,.12)}
 
-  /* Task table — 所有 td 统一 flex-start，控件 padding/min-height 完全统一，文字基线一模一样 */
+  /* Task table — td 保持 table-cell（不能改 display:flex 否则列宽算法崩溃），用 cell-wrap 内部 flex 对齐 */
   table.tasks{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;border:1px solid var(--border);table-layout:fixed}
   table.tasks th{background:#f8f9fc;padding:12px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
-  table.tasks td{border-top:1px solid var(--border);padding:8px 12px;display:flex;align-items:flex-start}
-  .tnum{width:54px;justify-content:center;font-weight:700;color:var(--primary);gap:3px}
+  table.tasks td{border-top:1px solid var(--border);padding:8px 12px;vertical-align:top}
+  .cell-wrap{display:flex;align-items:flex-start;width:100%}
+  .tnum{width:54px;text-align:center;font-weight:700;color:var(--primary)}
+  .tnum .cell-wrap{justify-content:center;gap:3px}
   table.tasks th:nth-child(1){width:44px}
   table.tasks th:nth-child(3){width:96px}
   table.tasks th:nth-child(4){width:148px}  /* 到期列 */
@@ -1116,16 +1118,16 @@ function addTaskRow(init){
   const t = init || {desc:'', status:'进行中', note:'', due:'', task_id:''};
   const sel = (v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="tnum"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
-    <td><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="1">${esc(t.desc||'')}</textarea></td>
+  tr.innerHTML=`<td class="tnum"><div class="cell-wrap"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></div><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
+    <td><div class="cell-wrap"><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="1">${esc(t.desc||'')}</textarea></div></td>
     <td>
-      <select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select>
+      <div class="cell-wrap"><select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select></div>
     </td>
     <td class="t-due-cell">
-      <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
+      <div class="cell-wrap"><input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日"></div>
     </td>
     <td class="t-note-cell">
-      <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
+      <div class="cell-wrap"><textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea></div>
     </td>`;
   tb.appendChild(tr);
   tr.querySelectorAll('textarea,select,input').forEach(el=>el.addEventListener('input',saveDraft));
