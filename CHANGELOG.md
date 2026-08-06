@@ -11,6 +11,7 @@
 
 ## 2026-08-06
 
+- fix: td 改回 table-cell + cell-wrap 内部 flex 对齐，修复上一轮 appearance:none + td flex 导致的表格布局崩溃
 - fix: 控件appearance:none+padding:10/6+min-height 34+自定义下拉箭头，三控件实际渲染高度完全一致
 - fix: 表格所有td统一flex-start+三控件padding/min-height完全统一，文字基线严格对齐
 - fix: textarea 默认压成一行(min-height 34,rows=1)+JS 自动增高;状态/到期 padding-top 降为 10 与描述齐平
