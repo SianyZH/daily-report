@@ -11,6 +11,7 @@
 
 ## 2026-08-06
 
+- fix: 填日报表格第4列日期对齐——用绝对定位把📅+日期input 嵌在备注textarea右下角，整列只占一个textarea的高度、跟其他列高度对齐，彻底告别错行
 - refactor: 填日报表格第4列样式修复——移除 task-meta flex 包装(日期input独占整行)，改为 textarea 占满顶部、t-due-row 行内紧凑显示(📅到+日期input)，不再有错位空白
 
 ## 2026-08-05
