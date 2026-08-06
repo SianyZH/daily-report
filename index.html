@@ -237,10 +237,12 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
-/* 第4列（结果/产出/进展 + 到期日）的紧凑布局：textarea 占满顶部，日期一行紧随其后左对齐紧凑显示 */
-.t-due-row{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--muted);flex-wrap:nowrap;padding:6px 12px 10px}
-.t-due-row .t-due-label{flex:0 0 auto;white-space:nowrap}
-.t-due-row input.t-due{flex:0 1 auto;width:auto;min-width:0;max-width:160px;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;font-family:inherit;background:#fff;color:var(--text);min-height:30px}
+/* 第4列（结果/产出/进展 + 到期日）的紧凑布局：textarea 占满整列，📅+日期input 浮动贴在右下角，与备注同行不单独换行 */
+.col-res{position:relative;padding:6px 12px 8px;vertical-align:top}
+table.tasks td.col-res textarea{padding-bottom:36px}  /* 给右下角日期输入器让位 */
+.t-due-row{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);background:rgba(255,255,255,.92);padding:2px 6px;border-radius:6px;margin:0}
+.t-due-row .t-due-label{flex:0 0 auto;white-space:nowrap;font-size:11px}
+.t-due-row input.t-due{flex:0 1 auto;width:124px;min-width:0;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:11px;font-family:inherit;background:#fff;color:var(--text);min-height:26px;line-height:1.4}
 /* 任务详情弹窗 */
 .td-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
 .td-title{font-size:16px;font-weight:700;margin-bottom:8px}
