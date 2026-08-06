@@ -11,6 +11,7 @@
 
 ## 2026-08-06
 
+- fix: t-note textarea 补 rows=1 与 t-desc 同高；状态列加宽 112px+select 内边距收窄文字不再截断；date input 恢复原生外观保证日期面板可弹
 - fix: td 改回 table-cell + cell-wrap 内部 flex 对齐，修复上一轮 appearance:none + td flex 导致的表格布局崩溃
 - fix: 控件appearance:none+padding:10/6+min-height 34+自定义下拉箭头，三控件实际渲染高度完全一致
 - fix: 表格所有td统一flex-start+三控件padding/min-height完全统一，文字基线严格对齐
