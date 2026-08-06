@@ -76,7 +76,7 @@
   tr.sortable-drag{background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
   table.tasks textarea{width:100%;border:none;padding:12px 14px;font-size:14px;outline:none;resize:vertical;min-height:46px;font-family:inherit;background:transparent;color:var(--text)}
   table.tasks textarea:focus{background:#fafbff;box-shadow:inset 0 0 0 2px var(--primary)}
-  .col-res{width:38%}
+  .col-res{width:100%}
 
   .report-to{text-align:right;margin-top:18px;font-style:italic;font-weight:700;color:var(--accent)}
   .report-to input,.report-to select{border:1px solid var(--border);border-radius:8px;outline:none;font-weight:700;font-size:15px;padding:7px 10px;color:var(--text);background:#fff;max-width:260px}
@@ -187,7 +187,7 @@
     .nav-icon{font-size:16px}
     table.tasks th{font-size:11px;padding:10px 8px}
     .tnum{width:32px;padding:10px 4px;font-size:13px}
-    .col-res{width:42%}
+    .col-res{width:100%}
     table.tasks textarea{font-size:13px;padding:10px}
     .login-card{padding:32px 18px}
     .login-logo{font-size:48px}
@@ -237,9 +237,10 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
-/* 第4列（结果/产出/进展 + 到期日）的紧凑布局：textarea 占满整列，📅+日期input 浮动贴在右下角，与备注同行不单独换行 */
-.col-res{position:relative;padding:6px 12px 8px;vertical-align:top}
-table.tasks td.col-res textarea{padding-bottom:36px}  /* 给右下角日期输入器让位 */
+/* 第4列（结果/产出/进展 + 到期日）：div.col-res 为普通 block，position:relative 可靠建立包含块，
+   📅+日期 input 用 position:absolute 贴在 textarea 右下角，绝不单独占一行 → 每条任务严格 1 行高度对齐 */
+.col-res{position:relative;width:100%;padding:6px 12px 8px;vertical-align:top}
+.col-res textarea{padding-bottom:34px !important}  /* 给右下角浮动日期输入器让位，文字不会被盖住（!important 防止移动端 table.tasks textarea 简写覆盖） */
 .t-due-row{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);background:rgba(255,255,255,.92);padding:2px 6px;border-radius:6px;margin:0}
 .t-due-row .t-due-label{flex:0 0 auto;white-space:nowrap;font-size:11px}
 .t-due-row input.t-due{flex:0 1 auto;width:124px;min-width:0;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:11px;font-family:inherit;background:#fff;color:var(--text);min-height:26px;line-height:1.4}
@@ -1122,11 +1123,13 @@ function addTaskRow(init){
     <td>
       <select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select>
     </td>
-    <td class="col-res">
-      <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
-      <div class="t-due-row">
-        <span class="t-due-label">📅 到期</span>
-        <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
+    <td>
+      <div class="col-res">
+        <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
+        <div class="t-due-row">
+          <span class="t-due-label">📅 到期</span>
+          <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
+        </div>
       </div>
     </td>`;
   tb.appendChild(tr);
