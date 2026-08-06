@@ -11,6 +11,7 @@
 
 ## 2026-08-06
 
+- fix: 表格所有td统一flex-start+三控件padding/min-height完全统一，文字基线严格对齐
 - fix: textarea 默认压成一行(min-height 34,rows=1)+JS 自动增高;状态/到期 padding-top 降为 10 与描述齐平
 - fix: 表格内控件 padding-top 14px+min-height 56px 让序号/状态/到期明显视觉居中
 - fix: 表格内控件垂直居中——状态/到期列改flex容器不再高低不齐
