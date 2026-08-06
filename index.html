@@ -237,10 +237,10 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
-/* 表单内任务元信息行（状态/备注/到期） */
-.task-meta{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
-.task-meta select.t-status{width:96px;border:2px solid var(--border);border-radius:8px;padding:5px 6px;font-size:13px;font-family:inherit;background:#fff;color:var(--text)}
-.task-meta input.t-due{width:auto;flex:1;min-width:124px;padding:5px 8px;font-size:12px;border:2px solid var(--border);border-radius:8px;font-family:inherit}
+/* 第4列（结果/产出/进展 + 到期日）的紧凑布局：textarea 占满顶部，日期一行紧随其后左对齐紧凑显示 */
+.t-due-row{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--muted);flex-wrap:nowrap;padding:6px 12px 10px}
+.t-due-row .t-due-label{flex:0 0 auto;white-space:nowrap}
+.t-due-row input.t-due{flex:0 1 auto;width:auto;min-width:0;max-width:160px;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;font-family:inherit;background:#fff;color:var(--text);min-height:30px}
 /* 任务详情弹窗 */
 .td-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
 .td-title{font-size:16px;font-weight:700;margin-bottom:8px}
@@ -1122,7 +1122,8 @@ function addTaskRow(init){
     </td>
     <td class="col-res">
       <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
-      <div class="task-meta">
+      <div class="t-due-row">
+        <span class="t-due-label">📅 到期</span>
         <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
       </div>
     </td>`;
