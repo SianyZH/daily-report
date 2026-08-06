@@ -339,6 +339,25 @@ textarea.td-input{width:100%;resize:vertical;font-family:inherit}
   .td-subrow .td-sub-actions{flex-direction:row;grid-column:1/-1;justify-content:flex-end}
   .td-subadd-row{grid-template-columns:1fr 1fr;gap:6px}
 }
+
+/* F5 任务进度百分比：看板卡片迷你进度条 */
+.tc-prog-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+.tc-prog-num{font-size:12px;font-weight:700;color:var(--primary);flex:0 0 auto;min-width:38px;text-align:right}
+.tc-progress{flex:1;height:6px;background:var(--border);border-radius:6px;overflow:hidden}
+.tc-progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--ok));border-radius:6px;transition:width .3s}
+/* 详情弹窗进度滑块 */
+.td-progress-row{display:flex;align-items:center;gap:10px;width:100%}
+.td-progress-row input[type=range]{flex:1;accent-color:var(--primary);min-height:30px}
+.td-prog-val{font-weight:700;min-width:44px;text-align:right;color:var(--primary)}
+
+/* F6 任务筛选器 */
+.follow-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px}
+.follow-filters .ff-field{display:flex;flex-direction:column;gap:4px}
+.follow-filters .ff-field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.follow-filters select{border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:#fff;color:var(--text);min-height:34px;outline:none}
+.follow-filters select:focus{border-color:var(--primary);box-shadow:inset 0 0 0 2px rgba(91,110,245,.12)}
+.follow-filters .btn{margin-left:auto}
+@media(max-width:480px){.follow-filters .ff-field{flex:1;min-width:120px}.follow-filters .btn{margin-left:0}}
 </style>
 <script src="sortable.min.js"></script>
 </head>
@@ -486,6 +505,14 @@ textarea.td-input{width:100%;resize:vertical;font-family:inherit}
         <button class="period-btn" onclick="shiftFollowAnchor(1)" title="下一周期">▶</button>
         <button class="period-btn period-pick" onclick="pickFollowAnchor()" title="选择具体周/月">📅</button>
         <button class="period-btn period-today" onclick="goFollowToday()" title="回到今天">⏎ 今天</button>
+      </div>
+
+      <!-- F6 任务筛选器：与角色视图/周期导航叠加生效 -->
+      <div class="follow-filters" id="followFilters">
+        <div class="ff-field"><label>优先级</label><select id="fltPri" onchange="applyFollowFilters()"><option value="">全部</option><option value="高">🔴 高</option><option value="中">🟡 中</option><option value="低">⚪ 低</option></select></div>
+        <div class="ff-field"><label>到期</label><select id="fltDue" onchange="applyFollowFilters()"><option value="">全部</option><option value="week">本周到期</option><option value="overdue">已逾期</option></select></div>
+        <div class="ff-field" id="fltCreatorWrap"><label>创建人</label><select id="fltCreator" onchange="applyFollowFilters()"><option value="">全部</option></select></div>
+        <button class="btn btn-ghost btn-sm" onclick="clearFollowFilters()">清除筛选</button>
       </div>
 
       <div class="follow-stat" id="followStat"></div>
@@ -2893,6 +2920,8 @@ function todayStr(){
 
 /* ========== 任务跟进页 ========== */
 let followRole='mine', followView='week', followAnchor='', overviewFilter='';  // overviewFilter: ''|'high'|'mid'|'low'|'overdue'|'done'
+let followPri='', followDue='', followCreator='';  // F6 任务筛选器状态
+let MEMBER_NAMES={};  // union_id -> 昵称（team_members 加载，供创建人筛选）
 function ensureFollowAnchor(){ if(!followAnchor) followAnchor=todayStr(); }
 function startOfWeek(d){
   const dt=new Date(d); const day=(dt.getDay()||7)-1; dt.setDate(dt.getDate()-day); dt.setHours(0,0,0,0); return dt;
@@ -3062,6 +3091,42 @@ function applyOverviewFilter(arr){
     default: return arr;
   }
 }
+/** F6 任务筛选器：按优先级 / 到期 / 创建人，与总览条过滤、周期导航叠加生效 */
+function applyFollowFilter(arr){
+  const today=todayStr();
+  let r=arr;
+  if(followPri) r=r.filter(p=>p.priority===followPri);
+  if(followDue==='overdue') r=r.filter(p=>p.due_date && p.due_date<today && p.status!=='已完成');
+  else if(followDue==='week'){
+    const s=startOfWeek(today); const e=new Date(s); e.setDate(s.getDate()+7);
+    r=r.filter(p=>p.due_date && p.due_date>=s && p.due_date<e);
+  }
+  if(followCreator) r=r.filter(p=>p.union_id===followCreator);
+  return r;
+}
+function applyFollowFilters(){
+  followPri=document.getElementById('fltPri').value||'';
+  followDue=document.getElementById('fltDue').value||'';
+  followCreator=document.getElementById('fltCreator').value||'';
+  renderFollowFromCache();
+}
+function clearFollowFilters(){
+  followPri=''; followDue=''; followCreator='';
+  ['fltPri','fltDue','fltCreator'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  renderFollowFromCache();
+}
+/** 重新填充「创建人」下拉（仅非 mine 视图显示）；按当前数据中的 union_id 列出 */
+function renderFollowFilters(){
+  const wrap=document.getElementById('fltCreatorWrap');
+  const sel=document.getElementById('fltCreator');
+  if(!wrap||!sel) return;
+  if(followRole==='mine'){ wrap.style.display='none'; followCreator=''; sel.value=''; return; }
+  wrap.style.display='';
+  const names=MEMBER_NAMES||{};
+  const ids=[...new Set(_fp.map(p=>p.union_id).filter(Boolean))];
+  if(followCreator && !ids.includes(followCreator)) followCreator='';
+  sel.innerHTML='<option value="">全部</option>'+ids.map(u=>`<option value="${u}"${u===followCreator?' selected':''}>${esc(names[u]||u.slice(0,8))}</option>`).join('');
+}
 let _fp=[], _fc={};  // 缓存：父任务列表 / parent_id→子任务映射
 
 function switchFollowRole(r){
@@ -3126,6 +3191,9 @@ async function loadFollow(){
     _fp=parents; _fc=childMap;
     ensureFollowAnchor();
     updatePeriodNav();
+    // 加载成员昵称映射，供 F6 创建人筛选显示
+    try{ const {data:mb}=await supa.from('team_members').select('name,union_id'); if(mb) mb.forEach(m=>{ if(m.union_id) MEMBER_NAMES[m.union_id]=m.name; }); }catch(e){}
+    renderFollowFilters();
     renderFollow(parents, childMap, stat, board);
   }catch(e){
     board.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div>加载失败：'+esc(e.message)+'</div>';
@@ -3146,6 +3214,8 @@ function renderFollow(parents, childMap, stat, board){
   if(overviewFilter){
     scopeP = applyOverviewFilter(scopeP);
   }
+  // 应用 F6 任务筛选器（优先级/到期/创建人）
+  scopeP = applyFollowFilter(scopeP);
   const cnt={进行中:0,阻塞:0,待开始:0,已完成:0};
   scopeP.forEach(p=>{ cnt[p.status]=(cnt[p.status]||0)+1; });
   stat.innerHTML=
@@ -3198,6 +3268,9 @@ function taskCardHtml(t, children){
   const note = t.note ? `<span class="tc-tag tag-note" title="${esc(t.note)}">${esc(t.note.length>28?t.note.slice(0,28)+'…':t.note)}</span>` : '';
   const due = t.due_date ? `<span class="tc-tag tag-due">📅 ${t.due_date}</span>` : '';
   const overdueTag = overdue ? `<span class="tc-tag tag-overdue">⚠️ 逾期</span>` : '';
+  // F5 迷你进度条
+  const prog = (t.progress==null?0:parseInt(t.progress,10)||0);
+  const progHtml = `<div class="tc-prog-wrap"><span class="tc-prog-num">${prog}%</span><div class="tc-progress"><div class="tc-progress-fill" style="width:${prog}%"></div></div></div>`;
   let subs='';
   if(children && children.length){
     subs='<div class="sub-list">'+children.map(c=>`<div class="sub-item"><span class="s-st s-${subCls(c.status)}">${c.status}</span><span>${esc(c.title||'')}${c.note?': '+esc(c.note):''}</span></div>`).join('')+'</div>';
@@ -3211,6 +3284,7 @@ function taskCardHtml(t, children){
       <span>📆 ${t.created_date} 起 · 跟进 ${days}天</span>
       ${note}
     </div>
+    ${progHtml}
     ${subs}
   </div>`;
 }
@@ -3267,6 +3341,7 @@ function openTaskDetail(id){
   const today=todayStr();
   const ref=t.status==='已完成'?(t.completed_date||today):today;
   const days=followDays(t.created_date, ref);
+  const prog = (t.progress==null?0:parseInt(t.progress,10)||0);  // F5 进度
   const STATUS_OPT=(v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
   const meUid = (JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId || '';
   const canEdit = !!supa && meUid && (meUid===t.union_id || meUid===t.report_to_union || isAdmin());
@@ -3277,7 +3352,8 @@ function openTaskDetail(id){
     <div class="td-row"><span class="td-k">跟进时长</span><span>已跟进 ${days} 天</span></div>
     <div class="td-row"><span class="td-k">期望完成</span><span>${canEdit?`<input type="date" class="td-input" id="tdDue" value="${t.due_date||''}">`:esc(t.due_date||'未设置')}</span></div>
     <div class="td-row"><span class="td-k">优先级</span><span>${canEdit?`<select class="td-input t-priority p-${t.priority==='高'?'high':t.priority==='低'?'low':'mid'}" id="tdPriority"><option value="高"${t.priority==='高'?' selected':''}>🔴 高</option><option value="中"${(!t.priority||t.priority==='中')?' selected':''}>🟡 中</option><option value="低"${t.priority==='低'?' selected':''}>⚪ 低</option></select>`:esc((t.priority||'中')+' 优')}</span></div>
-    <div class="td-row"><span class="td-k">状态</span><span>${canEdit?`<select class="td-input" id="tdStatus">${STATUS_OPT(t.status)}</select>`:esc(t.status)}</span></div>
+    <div class="td-row"><span class="td-k">状态</span><span>${canEdit?`<select class="td-input" id="tdStatus" onchange="if(this.value==='已完成'){const p=document.getElementById('tdProgress');if(p){p.value=100;const v=document.getElementById('tdProgVal');if(v)v.textContent='100%';}}">${STATUS_OPT(t.status)}</select>`:esc(t.status)}</span></div>
+    <div class="td-row td-row-stack"><span class="td-k">进度</span>${canEdit?`<div class="td-progress-row"><input type="range" id="tdProgress" min="0" max="100" step="5" value="${prog}" oninput="document.getElementById('tdProgVal').textContent=this.value+'%'"><span class="td-prog-val" id="tdProgVal">${prog}%</span></div>`:`<span style="font-weight:700;color:var(--primary)">${prog}%</span>`}</div>
     <div class="td-row td-row-stack"><span class="td-k">备注</span>${canEdit?`<textarea class="td-input" id="tdNote" rows="2" placeholder="补充说明 / 进展">${esc(t.note||'')}</textarea>`:(t.note?`<div class="td-note">${esc(t.note)}</div>`:'<span style="color:var(--muted)">无</span>')}</div>
     ${canEdit?`<div class="btn-row" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="saveParentTask('${t.id}')">💾 保存主任务改动</button></div>`:''}
   </div>`;
@@ -3389,19 +3465,23 @@ async function saveParentTask(id){
   if(!supa){ toast('⚠️ 当前未连接云端'); return; }
   const ok=await guardWrite('登录已过期，请先重新登录再保存任务');
   if(!ok) return;
+  const t=_fp.find(x=>x.id===id);  // 本地缓存对象（F5 进度回退用）
   const status=document.getElementById('tdStatus').value;
   const priority=document.getElementById('tdPriority').value||'中';
   const due=document.getElementById('tdDue').value||null;
   const note=(document.getElementById('tdNote').value||'').trim();
   const completed = status==='已完成' ? todayStr() : null;
+  // F5 进度：标「已完成」自动 100%
+  const progEl=document.getElementById('tdProgress');
+  let progress = progEl ? (parseInt(progEl.value,10)||0) : (t.progress||0);
+  if(status==='已完成') progress=100;
   const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
   const {error}=await supa.from('tasks').update({
-    status,priority,due_date:due,note,completed_date:completed,updated_at:new Date().toISOString()
+    status,priority,due_date:due,note,completed_date:completed,progress,updated_at:new Date().toISOString()
   }).eq('id',id).eq('union_id',meUid);
   if(error){ toast('❌ 保存失败：'+error.message); return; }
   // 更新本地
-  const t=_fp.find(x=>x.id===id);
-  if(t){ t.status=status; t.priority=priority; t.due_date=due; t.note=note; t.completed_date=completed; }
+  if(t){ t.status=status; t.priority=priority; t.due_date=due; t.note=note; t.completed_date=completed; t.progress=progress; }
   toast('✅ 主任务已保存');
   loadFollow();
 }
