@@ -65,9 +65,10 @@
   table.tasks th{background:#f8f9fc;padding:12px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
   table.tasks td{border-top:1px solid var(--border);padding:0;vertical-align:top}
   .tnum{padding:14px 6px;font-weight:700;color:var(--primary);width:54px;display:flex;align-items:center;justify-content:center;gap:3px;text-align:center}
-  table.tasks th:nth-child(1){width:50px}
+  table.tasks th:nth-child(1){width:44px}
   table.tasks th:nth-child(3){width:96px}
-  table.tasks th:nth-child(4){width:38%}
+  table.tasks th:nth-child(4){width:148px}  /* 到期列 */
+  table.tasks th:nth-child(5){width:40%}    /* 结果/产出/进展列 */
   .drag-handle{cursor:grab;color:var(--muted);font-size:13px;line-height:1;user-select:none;flex:0 0 auto;opacity:.5;transition:opacity .15s}
   .drag-handle:hover{opacity:1;color:var(--primary)}
   .drag-handle:active{cursor:grabbing}
@@ -76,7 +77,7 @@
   tr.sortable-drag{background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
   table.tasks textarea{width:100%;border:none;padding:12px 14px;font-size:14px;outline:none;resize:vertical;min-height:46px;font-family:inherit;background:transparent;color:var(--text)}
   table.tasks textarea:focus{background:#fafbff;box-shadow:inset 0 0 0 2px var(--primary)}
-  .col-res{width:100%}
+  .t-due-cell,.t-note-cell{vertical-align:top}
 
   .report-to{text-align:right;margin-top:18px;font-style:italic;font-weight:700;color:var(--accent)}
   .report-to input,.report-to select{border:1px solid var(--border);border-radius:8px;outline:none;font-weight:700;font-size:15px;padding:7px 10px;color:var(--text);background:#fff;max-width:260px}
@@ -187,7 +188,7 @@
     .nav-icon{font-size:16px}
     table.tasks th{font-size:11px;padding:10px 8px}
     .tnum{width:32px;padding:10px 4px;font-size:13px}
-    .col-res{width:100%}
+    table.tasks th:nth-child(4){width:118px}
     table.tasks textarea{font-size:13px;padding:10px}
     .login-card{padding:32px 18px}
     .login-logo{font-size:48px}
@@ -237,13 +238,11 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
-/* 第4列（结果/产出/进展 + 到期日）：div.col-res 为普通 block，position:relative 可靠建立包含块，
-   📅+日期 input 用 position:absolute 贴在 textarea 右下角，绝不单独占一行 → 每条任务严格 1 行高度对齐 */
-.col-res{position:relative;width:100%;padding:6px 12px 8px;vertical-align:top}
-.col-res textarea{padding-bottom:34px !important}  /* 给右下角浮动日期输入器让位，文字不会被盖住（!important 防止移动端 table.tasks textarea 简写覆盖） */
-.t-due-row{position:absolute;right:8px;bottom:6px;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);background:rgba(255,255,255,.92);padding:2px 6px;border-radius:6px;margin:0}
-.t-due-row .t-due-label{flex:0 0 auto;white-space:nowrap;font-size:11px}
-.t-due-row input.t-due{flex:0 1 auto;width:124px;min-width:0;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:11px;font-family:inherit;background:#fff;color:var(--text);min-height:26px;line-height:1.4}
+/* 到期列：独立单元格，日期 input 占满宽度，零绝对定位 → 彻底告别错行 */
+.t-due-cell{padding:6px 12px;text-align:center}
+.t-due-cell input.t-due{width:100%;max-width:130px;border:1px solid var(--border);border-radius:8px;padding:5px 6px;font-size:12px;font-family:inherit;background:#fff;color:var(--text);min-height:30px;box-sizing:border-box}
+.t-note-cell{padding:6px 12px 8px}
+.t-note-cell textarea{width:100%;box-sizing:border-box}
 /* 任务详情弹窗 */
 .td-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
 .td-title{font-size:16px;font-weight:700;margin-bottom:8px}
@@ -338,7 +337,7 @@ textarea.td-input{width:100%;resize:vertical;font-family:inherit}
         </div>
 
         <table class="tasks">
-          <thead><tr><th>#</th><th>任务描述 (Task)</th><th>状态</th><th class="col-res">结果 / 产出 / 进展</th></tr></thead>
+          <thead><tr><th>#</th><th>任务描述 (Task)</th><th>状态</th><th class="t-due-col">到期</th><th class="t-note-col">结果 / 产出 / 进展</th></tr></thead>
           <tbody id="taskBody"></tbody>
         </table>
         <div class="hint">📋 支持从 <b>Excel / 钉钉表格 / 飞书表格</b> 直接<b>复制多行</b>，在任意任务框里 <b>Ctrl/⌘+V 粘贴</b>，会自动按「描述↔结果」两列填入并自动增加行数。</div>
@@ -1123,14 +1122,11 @@ function addTaskRow(init){
     <td>
       <select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select>
     </td>
-    <td>
-      <div class="col-res">
-        <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
-        <div class="t-due-row">
-          <span class="t-due-label">📅 到期</span>
-          <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
-        </div>
-      </div>
+    <td class="t-due-cell">
+      <input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日">
+    </td>
+    <td class="t-note-cell">
+      <textarea class="t-note" data-i="${i}" placeholder="结果 / 产出 / 遗留事项">${esc(t.note||'')}</textarea>
     </td>`;
   tb.appendChild(tr);
   tr.querySelectorAll('textarea,select,input').forEach(el=>el.addEventListener('input',saveDraft));
