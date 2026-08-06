@@ -11,6 +11,7 @@
 
 ## 2026-08-06
 
+- refactor: 到期日拆为独立第4列——表格升级为5列(#/任务描述/状态/到期/结果·产出·进展)，移除全部绝对定位代码(.t-due-row/.col-res position:absolute)，到期作为普通td单元格彻底根治错行
 - fix: 第4列日期错行——改为 div.col-res(block) 作 position:relative 包含块承载绝对定位的日期input(td上position:relative不可靠)，修正 .col-res 宽度选择器(38%/42%→100%)与 textarea 让位选择器(td.col-res→.col-res + !important 防移动端覆盖)
 - fix: 填日报表格第4列日期对齐——用绝对定位把📅+日期input 嵌在备注textarea右下角，整列只占一个textarea的高度、跟其他列高度对齐，彻底告别错行
 - refactor: 填日报表格第4列样式修复——移除 task-meta flex 包装(日期input独占整行)，改为 textarea 占满顶部、t-due-row 行内紧凑显示(📅到+日期input)，不再有错位空白
