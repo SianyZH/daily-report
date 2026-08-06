@@ -1708,11 +1708,20 @@ async function checkSessionValid(){
   }catch(e){ return false; }
 }
 
-/** 引导用户重新登录钉钉（JWT 过期时调用） */
+/** 引导用户重新登录钉钉（JWT 过期时调用）。不主动切页，避免丢失用户当前已填内容。
+ *  钉钉 OAuth 是跳转登录，跳走前提醒用户先复制备注避免丢失。 */
 function promptRelogin(reason){
-  toast('⚠️ '+reason+'，请点击右上角「🔵 钉钉登录」重新登录');
-  // 自动切换到填写页方便用户看到登录按钮
-  switchPage('fill');
+  const hint = reason||'登录已过期';
+  toast('⚠️ '+hint+'。备注内容请先复制保存，然后点击右上角「🔵 钉钉登录」重新登录后再操作', 6000);
+  // 不主动切页：用户当前可能在任务弹窗/填表中途，已填内容不能丢
+}
+
+/** 写操作守卫：JWT 过期时引导重登并返回 false；通过则返回 true */
+async function guardWrite(reason){
+  if(!supa){ toast('⚠️ 当前未连接云端'); return false; }
+  const valid=await checkSessionValid();
+  if(!valid){ promptRelogin(reason||'登录已过期'); return false; }
+  return true;
 }
 
 /* ---------- 配置管理 ---------- */
@@ -2718,10 +2727,12 @@ function downloadResult(){
 }
 
 /* ---------- 工具 ---------- */
-function toast(msg){
+function toast(msg, durationMs){
   const t=document.getElementById('toast'); if(!t) return;
   t.textContent=msg;
-  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600);
+  t.classList.add('show');
+  const d = typeof durationMs==='number' && durationMs>0 ? durationMs : 2600;
+  setTimeout(()=>t.classList.remove('show'), d);
 }
 // 全局错误捕获：任何未处理的异常都显示出来，避免「点了没反应」却看不到原因
 window.addEventListener('error', (e)=>{
@@ -3115,6 +3126,8 @@ function openTaskDetail(id){
 /* 任务详情弹窗里的子任务 / 主任务 API（云端模式） */
 async function addSubTask(parentId){
   if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const ok=await guardWrite('登录已过期，请先重新登录再添加子任务');
+  if(!ok) return;
   const title=(document.getElementById('nsTitle').value||'').trim();
   const status=document.getElementById('nsStatus').value;
   const due=document.getElementById('nsDue').value||null;
@@ -3136,6 +3149,8 @@ async function addSubTask(parentId){
 }
 async function saveSubTask(id){
   if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const ok=await guardWrite('登录已过期，请先重新登录再保存子任务');
+  if(!ok) return;
   const row=document.querySelector(`.td-subrow[data-sub-id="${id}"]`);
   if(!row) return;
   const title=(row.querySelector('.td-sub-title').value||'').trim();
@@ -3159,6 +3174,8 @@ async function saveSubTask(id){
 }
 async function deleteSubTask(id){
   if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const ok=await guardWrite('登录已过期，请先重新登录再删除子任务');
+  if(!ok) return;
   if(!confirm('确认删除该子任务？\n（仅能删除你本人创建的子任务）')) return;
   const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
   const {error}=await supa.from('tasks').delete().eq('id',id).eq('union_id',meUid);
@@ -3174,6 +3191,8 @@ async function deleteSubTask(id){
 }
 async function saveParentTask(id){
   if(!supa){ toast('⚠️ 当前未连接云端'); return; }
+  const ok=await guardWrite('登录已过期，请先重新登录再保存任务');
+  if(!ok) return;
   const status=document.getElementById('tdStatus').value;
   const due=document.getElementById('tdDue').value||null;
   const note=(document.getElementById('tdNote').value||'').trim();
