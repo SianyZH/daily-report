@@ -212,6 +212,15 @@
 .follow-views{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
 .view-tab,.role-tab{padding:8px 18px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--muted);transition:.2s;font-family:inherit}
 .view-tab.active,.role-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+/* 周期导航（周/月视图切换具体周/月） */
+.period-nav{display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap;background:#f8f9fc;padding:10px 14px;border-radius:12px;border:1px solid var(--border)}
+.period-btn{padding:6px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--muted);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;min-width:36px}
+.period-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-1px)}
+.period-label{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--text);min-width:180px}
+.period-pick{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;min-width:40px}
+.period-pick:hover{color:#fff}
+.period-today{font-size:12px;padding:6px 10px}
+@media(max-width:480px){.period-label{font-size:13px}}
 .follow-stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-bottom:20px}
 .follow-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:4px}
 .fcol-h{font-size:14px;font-weight:700;padding:11px 14px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center}
@@ -409,6 +418,14 @@ textarea.td-input{width:100%;resize:vertical;font-family:inherit}
         <div class="view-tab active" data-view="week" onclick="switchFollowView('week')">🗓️ 周视图</div>
         <div class="view-tab" data-view="day" onclick="switchFollowView('day')">📅 日视图</div>
         <div class="view-tab" data-view="month" onclick="switchFollowView('month')">📆 月视图</div>
+      </div>
+
+      <div class="period-nav" id="periodNav" style="display:none">
+        <button class="period-btn" onclick="shiftFollowAnchor(-1)" title="上一周期">◀</button>
+        <span class="period-label" id="periodLabel"></span>
+        <button class="period-btn" onclick="shiftFollowAnchor(1)" title="下一周期">▶</button>
+        <button class="period-btn period-pick" onclick="pickFollowAnchor()" title="选择具体周/月">📅</button>
+        <button class="period-btn period-today" onclick="goFollowToday()" title="回到今天">⏎ 今天</button>
       </div>
 
       <div class="follow-stat" id="followStat"></div>
@@ -2730,7 +2747,133 @@ function todayStr(){
 }
 
 /* ========== 任务跟进页 ========== */
-let followRole='mine', followView='week';
+let followRole='mine', followView='week', followAnchor='';  // 周期锚点(YYYY-MM-DD)：周视图=锚点所在周一；月视图=锚点所在月1号
+function ensureFollowAnchor(){ if(!followAnchor) followAnchor=todayStr(); }
+function startOfWeek(d){
+  const dt=new Date(d); const day=(dt.getDay()||7)-1; dt.setDate(dt.getDate()-day); dt.setHours(0,0,0,0); return dt;
+}
+function startOfMonth(d){
+  const dt=new Date(d); return new Date(dt.getFullYear(),dt.getMonth(),1);
+}
+function fmtDate(d){
+  const dt=new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+function fmtYM(d){ const dt=new Date(d); return `${dt.getFullYear()}年${dt.getMonth()+1}月`; }
+function fmtWeekRange(d){
+  const s=startOfWeek(d); const e=new Date(s); e.setDate(s.getDate()+6);
+  return `${fmtDate(s)} ~ ${fmtDate(e)}`;
+}
+function followScopeRange(view, anchor){
+  // 返回 [start, end) 半开区间；按 view 决定粒度
+  if(view==='week'){
+    const s=startOfWeek(anchor); const e=new Date(s); e.setDate(s.getDate()+7);
+    return [s, e];
+  } else if(view==='month'){
+    const s=startOfMonth(anchor); const e=new Date(s.getFullYear(),s.getMonth()+1,1);
+    return [s, e];
+  }
+  // 日视图按 anchor 当天
+  const s=new Date(anchor); s.setHours(0,0,0,0);
+  const e=new Date(s); e.setDate(s.getDate()+1);
+  return [s, e];
+}
+function inRange(dateStr, s, e){
+  if(!dateStr) return false;
+  const dt=new Date(dateStr);
+  return dt>=s && dt<e;
+}
+/* 任务是否在本周期内"出现过"——按创建日 or 完成日落入周期计 */
+function taskInScope(p, s, e){
+  return inRange(p.created_date, s, e) || (p.completed_date && inRange(p.completed_date, s, e));
+}
+function updatePeriodNav(){
+  const nav=document.getElementById('periodNav');
+  if(!nav) return;
+  ensureFollowAnchor();
+  const show = followView==='week' || followView==='month';
+  nav.style.display = show ? '' : 'none';
+  if(!show) return;
+  const lbl=document.getElementById('periodLabel');
+  if(!lbl) return;
+  if(followView==='week') lbl.textContent = `📅 ${fmtWeekRange(followAnchor)}`;
+  else lbl.textContent = `📆 ${fmtYM(followAnchor)}`;
+}
+function shiftFollowAnchor(delta){
+  ensureFollowAnchor();
+  const dt=new Date(followAnchor);
+  if(followView==='week'){ dt.setDate(dt.getDate()+delta*7); }
+  else if(followView==='month'){ dt.setMonth(dt.getMonth()+delta); }
+  else { return; }
+  followAnchor=fmtDate(dt);
+  updatePeriodNav();
+  if(_fp.length || _fc) renderFollowFromCache();
+}
+function goFollowToday(){
+  followAnchor=todayStr();
+  updatePeriodNav();
+  if(_fp.length || _fc) renderFollowFromCache();
+}
+function pickFollowAnchor(){
+  ensureFollowAnchor();
+  const inp=document.createElement('input');
+  inp.style.cssText='position:fixed;left:-9999px;opacity:0';
+  document.body.appendChild(inp);
+  const cleanup=()=>{ try{document.body.removeChild(inp);}catch(_){ } };
+  if(followView==='week'){
+    // 算当前锚点所在 ISO 周
+    const [y,w]=isoWeekOf(followAnchor);
+    inp.type='week'; inp.value=`${y}-W${String(w).padStart(2,'0')}`;
+    inp.addEventListener('change',()=>{
+      const v=inp.value||'';
+      const m=v.match(/^(\d{4})-W(\d{2})$/);
+      cleanup();
+      if(!m){ return; }
+      const mon=isoWeekToDate(+m[1], +m[2]);
+      followAnchor=fmtDate(mon);
+      updatePeriodNav();
+      if(_fp.length || _fc) renderFollowFromCache();
+    });
+  } else if(followView==='month'){
+    const dt=new Date(followAnchor);
+    inp.type='month'; inp.value=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    inp.addEventListener('change',()=>{
+      const v=inp.value||'';
+      const m=v.match(/^(\d{4})-(\d{2})$/);
+      cleanup();
+      if(!m){ return; }
+      followAnchor=`${m[1]}-${m[2]}-01`;
+      updatePeriodNav();
+      if(_fp.length || _fc) renderFollowFromCache();
+    });
+  } else { cleanup(); return; }
+  if(typeof inp.showPicker==='function') inp.showPicker(); else { inp.focus(); inp.click(); }
+  setTimeout(cleanup, 60000); // 安全兜底
+}
+/* ISO 周号（基于周一） */
+function isoWeekOf(dateStr){
+  const d=new Date(dateStr); const day=(d.getDay()||7)-1; d.setDate(d.getDate()-day); d.setHours(0,0,0,0);
+  const target=new Date(d.valueOf()); target.setDate(target.getDate()+3);
+  const firstThursday=new Date(target.valueOf());
+  target.setMonth(0,1);
+  if(target.getDay()!==4){ target.setMonth(0,1+((4-target.getDay())+7)%7); }
+  const week=1+Math.ceil((firstThursday-target.valueOf())/604800000);
+  return [d.getFullYear(), week];
+}
+function isoWeekToDate(year, week){
+  const simple=new Date(year,0,1+(week-1)*7);
+  const dow=simple.getDay();
+  const ISOweekStart=new Date(simple);
+  if(dow<=4) ISOweekStart.setDate(simple.getDate()-simple.getDay()+1);
+  else ISOweekStart.setDate(simple.getDate()+8-simple.getDay());
+  ISOweekStart.setHours(0,0,0,0);
+  return ISOweekStart;
+}
+function renderFollowFromCache(){
+  const board=document.getElementById('followBoard');
+  const stat=document.getElementById('followStat');
+  if(board && stat) renderFollow(_fp||[], _fc||{}, stat, board);
+}
 let _fp=[], _fc={};  // 缓存：父任务列表 / parent_id→子任务映射
 
 function switchFollowRole(r){
@@ -2740,6 +2883,8 @@ function switchFollowRole(r){
 }
 function switchFollowView(v){
   followView=v;
+  ensureFollowAnchor();
+  updatePeriodNav();
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
   loadFollow();
 }
@@ -2791,6 +2936,8 @@ async function loadFollow(){
     const children=rows.filter(r=>r.parent_id);
     const childMap={}; children.forEach(c=>{ (childMap[c.parent_id]=childMap[c.parent_id]||[]).push(c); });
     _fp=parents; _fc=childMap;
+    ensureFollowAnchor();
+    updatePeriodNav();
     renderFollow(parents, childMap, stat, board);
   }catch(e){
     board.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div>加载失败：'+esc(e.message)+'</div>';
@@ -2798,14 +2945,24 @@ async function loadFollow(){
 }
 
 function renderFollow(parents, childMap, stat, board){
+  ensureFollowAnchor();
+  // 按锚点过滤本周/月有动作的任务（创建日或完成日落入周期）
+  let scopeP = parents;
+  if(followView==='week' || followView==='month'){
+    const [s,e] = followScopeRange(followView, followAnchor);
+    scopeP = parents.filter(p => taskInScope(p, s, e));
+  }
   const cnt={进行中:0,阻塞:0,待开始:0,已完成:0};
-  parents.forEach(p=>{ cnt[p.status]=(cnt[p.status]||0)+1; });
+  scopeP.forEach(p=>{ cnt[p.status]=(cnt[p.status]||0)+1; });
   stat.innerHTML=
     `<div class="stat"><div class="stat-num" style="color:#1d4ed8">${cnt['进行中']}</div><div class="stat-label">进行中</div></div>`+
     `<div class="stat"><div class="stat-num" style="color:#b91c1c">${cnt['阻塞']}</div><div class="stat-label">阻塞</div></div>`+
     `<div class="stat"><div class="stat-num" style="color:#64748b">${cnt['待开始']}</div><div class="stat-label">待开始</div></div>`+
     `<div class="stat"><div class="stat-num" style="color:#15803d">${cnt['已完成']}</div><div class="stat-label">已完成</div></div>`;
-  if(parents.length===0){
+  // 周/月无符合任务时给个明确空提示（说明是当前周期没有）
+  const emptyForPeriod=(view)=>`<div class="empty"><div class="empty-icon">📅</div>${view==='week'?'本周':'本月'}暂无创建或完成的任务<br><div style="font-size:12px;color:var(--muted);margin-top:6px">试试 ◀ ▶ 切换其他周期，或 ⏎ 回到今天</div></div>`;
+  if(scopeP.length===0){
+    if(followView==='week' || followView==='month'){ board.innerHTML=emptyForPeriod(followView); return; }
     board.innerHTML='<div class="empty"><div class="empty-icon">📭</div>暂无任务（去「填写日报」提交后会自动进入这里）</div>';
     return;
   }
@@ -2817,14 +2974,14 @@ function renderFollow(parents, childMap, stat, board){
       {key:'已完成',cls:'fcol-done',label:'🟩 已完成'}
     ];
     board.innerHTML='<div class="follow-board">'+cols.map(col=>{
-      const list=parents.filter(p=>p.status===col.key);
+      const list=scopeP.filter(p=>p.status===col.key);
       const body=list.length? list.map(p=>taskCardHtml(p, childMap[p.id])).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px">暂无</div>';
       return `<div><div class="fcol-h ${col.cls}"><span>${col.label}</span><span>${list.length}</span></div><div class="fcol">${body}</div></div>`;
     }).join('')+'</div>';
   } else if(followView==='day'){
-    renderDayView(parents, childMap, board);
+    renderDayView(scopeP, childMap, board, followAnchor);
   } else {
-    renderMonthView(parents, childMap, board);
+    renderMonthView(scopeP, childMap, board, followAnchor);
   }
 }
 
@@ -2859,19 +3016,21 @@ function followDays(created, ref){
 }
 function subCls(s){ return ({'已完成':'done','进行中':'doing','阻塞':'block','待开始':'todo'})[s]||'todo'; }
 
-function renderDayView(parents, childMap, board){
-  const today=todayStr();
+function renderDayView(parents, childMap, board, anchor){
+  anchor = anchor || followAnchor;
   const open=parents.filter(p=>p.status!=='已完成');
-  const doneToday=parents.filter(p=>p.status==='已完成' && p.completed_date===today);
+  const doneToday=parents.filter(p=>p.status==='已完成' && p.completed_date===anchor);
   let html='<div class="tl-day">';
   html+=`<div class="tl-sec">🔵 进行中 / 待跟进（${open.length}）</div>`;
   html+= open.length? open.map(p=>`<div class="tl-item"><span class="tl-dot" style="background:#3b82f6"></span><div>${taskCardHtml(p, childMap[p.id])}</div></div>`).join('') : '<div style="color:var(--muted);font-size:13px">暂无</div>';
-  html+=`<div class="tl-sec">✅ 今日完成（${doneToday.length}）</div>`;
+  html+=`<div class="tl-sec">✅ ${anchor} 当日完成（${doneToday.length}）</div>`;
   html+= doneToday.length? doneToday.map(p=>`<div class="tl-item"><span class="tl-dot" style="background:#22c55e"></span><div>${taskCardHtml(p, childMap[p.id])}</div></div>`).join('') : '<div style="color:var(--muted);font-size:13px">暂无</div>';
   board.innerHTML=html+'</div>';
 }
-function renderMonthView(parents, childMap, board){
-  const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
+function renderMonthView(parents, childMap, board, anchor){
+  anchor = anchor || followAnchor;
+  const dt=new Date(anchor);
+  const y=dt.getFullYear(), m=dt.getMonth();
   const first=new Date(y,m,1), last=new Date(y,m+1,0);
   const weeks={};
   parents.forEach(p=>{
@@ -2881,7 +3040,7 @@ function renderMonthView(parents, childMap, board){
     (weeks[k]=weeks[k]||[]).push(p);
   });
   const keys=Object.keys(weeks).sort();
-  if(!keys.length){ board.innerHTML='<div class="empty"><div class="empty-icon">📆</div>本月暂无创建的任务</div>'; return; }
+  if(!keys.length){ board.innerHTML='<div class="empty"><div class="empty-icon">📆</div>本月暂无创建的任务<br><div style="font-size:12px;color:var(--muted);margin-top:6px">试试 ◀ ▶ 切换其他月份，或 ⏎ 回到今天</div></div>'; return; }
   board.innerHTML='<div class="month-grid">'+keys.map(k=>{
     const list=weeks[k];
     return `<div class="week-col"><h4>${k}</h4>`+list.map(p=>`<div class="wc-item"><span>${esc(p.title||'')}</span><span class="rd-status ${statusClass(p.status)}" style="font-size:11px">${p.status}</span></div>`).join('')+'</div>';
