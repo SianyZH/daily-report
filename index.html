@@ -12,6 +12,9 @@
     --border:#e6e9f2; --ok:#2ec27e; --warn:#f5a623;
     --shadow:0 8px 30px rgba(30,40,90,.08);
     --dingtalk:#0089FF;
+    /* 优先级语义色（PRD 7.4 铁律：🔴高/🟡中/⚪低 全站固定） */
+    --p-high:#dc2626; --p-mid:#d97706; --p-low:#64748b;
+    --p-high-bg:rgba(220,38,38,.12); --p-mid-bg:rgba(217,119,6,.12); --p-low-bg:rgba(100,116,139,.12);
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
@@ -67,10 +70,11 @@
   .cell-wrap{display:flex;align-items:flex-start;width:100%}
   .tnum{width:54px;text-align:center;font-weight:700;color:var(--primary)}
   .tnum .cell-wrap{justify-content:center;gap:3px}
-  table.tasks th:nth-child(1){width:44px}
-  table.tasks th:nth-child(3){width:112px}
-  table.tasks th:nth-child(4){width:148px}  /* 到期列 */
-  table.tasks th:nth-child(5){width:40%}    /* 结果/产出/进展列 */
+  table.tasks th:nth-child(1){width:128px}  /* 类型列 */
+  table.tasks th:nth-child(2){width:44px}   /* #序号 */
+  table.tasks th:nth-child(4){width:112px}  /* 状态 */
+  table.tasks th:nth-child(5){width:148px}  /* 到期列 */
+  table.tasks th:nth-child(6){width:40%}    /* 结果/产出/进展列 */
   .drag-handle{cursor:grab;color:var(--muted);font-size:13px;line-height:1;user-select:none;flex:0 0 auto;opacity:.5;transition:opacity .15s}
   .drag-handle:hover{opacity:1;color:var(--primary)}
   .drag-handle:active{cursor:grabbing}
@@ -254,6 +258,59 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
+/* ========== PRD v2.2 Sprint 1 新组件样式 ========== */
+/* 总览条（F2） */
+.overview-strip{display:flex;gap:8px;flex-wrap:wrap;background:linear-gradient(135deg,#f8f9fc,#eef1fb);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:18px;align-items:center}
+.overview-strip-label{font-size:13px;font-weight:700;color:var(--text);padding:0 6px 0 2px;display:flex;align-items:center;gap:4px}
+.overview-cell{display:inline-flex;align-items:baseline;gap:4px;padding:6px 10px;border-radius:10px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--border);cursor:pointer;transition:.15s;user-select:none}
+.overview-cell:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.06)}
+.overview-cell.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.overview-num{font-size:16px;font-weight:800}
+.overview-cell.pri-high .overview-num{color:var(--p-high)}
+.overview-cell.pri-mid  .overview-num{color:var(--p-mid)}
+.overview-cell.pri-low  .overview-num{color:var(--p-low)}
+.overview-cell.pri-overdue .overview-num{color:#dc2626}
+.overview-cell.pri-done .overview-num{color:var(--ok)}
+.overview-cell.active .overview-num{color:#fff}
+
+/* 任务卡片优先级色块（F1） */
+.tc-pri{position:absolute;top:0;left:0;width:5px;height:100%;border-radius:10px 0 0 10px}
+.tc-pri.p-high{background:var(--p-high)}
+.tc-pri.p-mid {background:var(--p-mid)}
+.tc-pri.p-low {background:var(--p-low)}
+.task-card{position:relative;padding-left:14px}  /* 给左侧色块留位 */
+
+/* 行类型标识（F4：🔗任务/📝日常事务） */
+.row-type{font-size:14px;width:24px;text-align:center;display:inline-block;cursor:help;line-height:1}
+.row-type.t-task{color:var(--primary)}
+.row-type.t-misc{color:var(--muted)}
+
+/* 优先级列（日报表单） */
+select.t-priority{font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;background:#fff;cursor:pointer;min-height:30px;box-sizing:border-box}
+select.t-priority.p-high{background:var(--p-high-bg);color:var(--p-high);font-weight:700}
+select.t-priority.p-mid {background:var(--p-mid-bg);color:var(--p-mid);font-weight:700}
+select.t-priority.p-low {background:var(--p-low-bg);color:var(--p-low)}
+
+/* 转任务按钮（F4b） */
+.promote-btn{font-size:14px;background:none;border:1px dashed var(--border);border-radius:6px;color:var(--primary);cursor:pointer;padding:4px 8px;font-family:inherit;white-space:nowrap;transition:.15s}
+.promote-btn:hover{background:var(--p-high-bg);border-color:var(--primary);border-style:solid}
+.promote-btn.done{background:var(--p-high-bg);border-color:var(--primary);border-style:solid;color:var(--primary)}
+
+/* 跟进页新建任务按钮（F4b） */
+.new-task-btn{padding:10px 18px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-family:inherit;font-size:14px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.2s}
+.new-task-btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(91,110,245,.35)}
+
+/* 新建任务弹窗 */
+.nt-backdrop{position:fixed;inset:0;background:rgba(15,20,40,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.nt-box{background:#fff;border-radius:16px;width:100%;max-width:480px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.nt-title{font-size:18px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.nt-field{margin-bottom:12px}
+.nt-field label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.nt-field input,.nt-field select,.nt-field textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fff;color:var(--text);box-sizing:border-box}
+.nt-field input:focus,.nt-field select:focus,.nt-field textarea:focus{border-color:var(--primary);box-shadow:inset 0 0 0 2px var(--primary)}
+.nt-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+@media(max-width:480px){.overview-strip-label{display:none}.overview-num{font-size:14px}.overview-cell{font-size:12px;padding:5px 8px}}
+
 /* 任务详情弹窗 */
 .td-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
 .td-title{font-size:16px;font-weight:700;margin-bottom:8px}
@@ -348,7 +405,7 @@ textarea.td-input{width:100%;resize:vertical;font-family:inherit}
         </div>
 
         <table class="tasks">
-          <thead><tr><th>#</th><th>任务描述 (Task)</th><th>状态</th><th class="t-due-col">到期</th><th class="t-note-col">结果 / 产出 / 进展</th></tr></thead>
+          <thead><tr><th class="t-type-col">类型</th><th>#</th><th>任务描述 (Task)</th><th>状态</th><th class="t-due-col">到期</th><th class="t-note-col">结果 / 产出 / 进展</th></tr></thead>
           <tbody id="taskBody"></tbody>
         </table>
         <div class="hint">📋 支持从 <b>Excel / 钉钉表格 / 飞书表格</b> 直接<b>复制多行</b>，在任意任务框里 <b>Ctrl/⌘+V 粘贴</b>，会自动按「描述↔结果」两列填入并自动增加行数。</div>
@@ -418,7 +475,10 @@ textarea.td-input{width:100%;resize:vertical;font-family:inherit}
         <div class="view-tab active" data-view="week" onclick="switchFollowView('week')">🗓️ 周视图</div>
         <div class="view-tab" data-view="day" onclick="switchFollowView('day')">📅 日视图</div>
         <div class="view-tab" data-view="month" onclick="switchFollowView('month')">📆 月视图</div>
+        <button class="new-task-btn" onclick="openNewTaskModal()">➕ 新建任务</button>
       </div>
+
+      <div class="overview-strip" id="overviewStrip"></div>
 
       <div class="period-nav" id="periodNav" style="display:none">
         <button class="period-btn" onclick="shiftFollowAnchor(-1)" title="上一周期">◀</button>
@@ -1136,10 +1196,11 @@ function addTaskRow(init){
   const t = init || {desc:'', status:'进行中', note:'', due:'', task_id:''};
   const sel = (v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="tnum"><div class="cell-wrap"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></div><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
+  tr.innerHTML=`<td class="t-type-cell"><div class="cell-wrap"><span class="row-type ${t.task_id?'t-task':'t-misc'}" title="${t.task_id?'🔗 已关联任务（提交会回写 tasks 表）':'📝 日常事务（仅存日报，不会进入任务跟进）'}">${t.task_id?'🔗':'📝'}</span>${!t.task_id?`<button type="button" class="promote-btn" onclick="promoteToTask(this)" title="转为任务，提交后进入任务跟进">➕ 转为任务</button>`:''}</div></td>
+    <td class="tnum"><div class="cell-wrap"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></div><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
     <td><div class="cell-wrap"><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="1">${esc(t.desc||'')}</textarea></div></td>
     <td>
-      <div class="cell-wrap"><select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select></div>
+      <div class="cell-wrap" style="gap:4px"><select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select><select class="t-priority p-${(t.priority||'中')==='高'?'high':(t.priority||'中')==='低'?'low':'mid'}" data-i="${i}" title="优先级"><option value="高"${t.priority==='高'?' selected':''}>🔴</option><option value="中"${(!t.priority||t.priority==='中')?' selected':''}>🟡</option><option value="低"${t.priority==='低'?' selected':''}>⚪</option></select></div>
     </td>
     <td class="t-due-cell">
       <div class="cell-wrap"><input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日"></div>
@@ -1157,6 +1218,74 @@ function addTaskRow(init){
   return i;
 }
 /** 任务表格 textarea 自适应高度：先归零再按 scrollHeight 设定，封顶 max-height(200px) 后出滚动条 */
+/** F4b：把当前日报行从 📝 日常事务标记为 🔗 任务（提交时入 tasks 表） */
+function promoteToTask(btn){
+  const tr=btn.closest('tr');
+  if(!tr) return;
+  const ic=tr.querySelector('.row-type');
+  if(ic){ ic.classList.remove('t-misc'); ic.classList.add('t-task'); ic.textContent='🔗'; ic.title='🔗 已关联任务（提交会回写 tasks 表）'; }
+  tr.dataset.promote='1';
+  btn.remove();
+  toast('✅ 已标记为任务（提交后进入任务跟进）');
+}
+
+/** F4：判断这一行是否要写 tasks 表 */
+function shouldWriteToTasks(tr){
+  return tr.querySelector('.row-type.t-task') !== null || tr.dataset.promote==='1';
+}
+
+/** F4b 跟进页新建任务弹窗 */
+function openNewTaskModal(){
+  const html = `
+    <div class="nt-backdrop" id="newTaskBackdrop" onclick="if(event.target===this)closeNewTaskModal()">
+      <div class="nt-box" role="dialog">
+        <div class="nt-title">➕ 新建任务</div>
+        <div class="nt-field"><label>标题 *</label><input type="text" id="ntTitle" maxlength="200" placeholder="例如：导入越南供应商 T2026X"></div>
+        <div class="nt-field" style="display:flex;gap:10px">
+          <div style="flex:1"><label>优先级</label><select id="ntPriority"><option value="高">🔴 高</option><option value="中" selected>🟡 中</option><option value="低">⚪ 低</option></select></div>
+          <div style="flex:1"><label>状态</label><select id="ntStatus"><option value="进行中" selected>进行中</option><option value="待开始">待开始</option><option value="阻塞">阻塞</option></select></div>
+        </div>
+        <div class="nt-field"><label>期望完成日</label><input type="date" id="ntDue"></div>
+        <div class="nt-field"><label>备注（可选）</label><textarea id="ntNote" rows="2" placeholder="补充说明 / 进展"></textarea></div>
+        <div class="nt-row">
+          <button class="btn btn-ghost btn-sm" onclick="closeNewTaskModal()">取消</button>
+          <button class="btn btn-primary btn-sm" onclick="submitNewTask()">💾 保存</button>
+        </div>
+      </div>
+    </div>`;
+  const old=document.getElementById('newTaskBackdrop'); if(old) old.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+  setTimeout(()=>{ const t=document.getElementById('ntTitle'); if(t) t.focus(); }, 50);
+}
+function closeNewTaskModal(){ const el=document.getElementById('newTaskBackdrop'); if(el) el.remove(); }
+
+async function submitNewTask(){
+  const ok=await guardWrite('登录已过期，请先重新登录再新建任务');
+  if(!ok) return;
+  const title=(document.getElementById('ntTitle').value||'').trim();
+  if(!title){ toast('⚠️ 标题不能为空'); return; }
+  const priority=document.getElementById('ntPriority').value||'中';
+  const status=document.getElementById('ntStatus').value||'进行中';
+  const due=document.getElementById('ntDue').value||null;
+  const note=(document.getElementById('ntNote').value||'').trim();
+  const meUid=authUnionId();
+  const repSel=document.getElementById('repTo');
+  const reportToUnion = repSel && repSel.selectedOptions && repSel.selectedOptions[0] ? (repSel.selectedOptions[0].dataset.uid||'') : (JSON.parse(localStorage.getItem(LS.dtUser)||'null')?.report_to_union || '');
+  try{
+    const {data,error}=await supa.from('tasks').insert({
+      union_id:meUid, report_to_union:reportToUnion||null,
+      parent_id:null, title, status, priority,
+      due_date:due, note,
+      created_date: todayStr()
+    }).select('id').single();
+    if(error) throw error;
+    toast('✅ 任务已创建');
+    closeNewTaskModal();
+    if(data){ _fp.unshift({id:data.id, union_id:meUid, report_to_union:reportToUnion, parent_id:null, title, status, priority, due_date:due, note, created_date:todayStr(), completed_date:null}); }
+    renderFollowFromCache();
+  }catch(e){ toast('❌ 创建失败：'+e.message); }
+}
+
 function autoResizeTaskTextarea(ta){
   ta.style.height='auto';
   ta.style.height=Math.min(ta.scrollHeight,200)+'px';
@@ -2025,11 +2154,15 @@ function collectForm(){
     const note=(tr.querySelector('.t-note').value||'').trim();
     const due=(tr.querySelector('.t-due').value||'');
     const taskId=(tr.querySelector('.t-taskid').value||'')||'';
+    const priority = (tr.querySelector('.t-priority')?.value) || '中';
     // 跳过完全空行（描述/备注均无）
     if(!desc && !note) return;
+    // F4：行类型——🔗 任务（写 tasks 表）或 📝 日常事务（仅存日报）
+    const isTask = shouldWriteToTasks(tr);
     tasks.push({
-      desc, status, note, due,
+      desc, status, note, due, priority,
       task_id: taskId,
+      type: isTask ? 'task' : 'misc',  // 任务 / 日常事务
       result: composeResult(status, note)   // 兼容字段：供 AI 生成 / 旧列表详情展示
     });
   });
@@ -2097,9 +2230,9 @@ async function saveReport(){
         throw error;
       }
       const reportId = ins && ins.id;
-      // 同步写入 tasks 表（任务成为一等实体，支撑「任务跟进」视图；子任务不进 daily_reports，
-      // 统一在「任务跟进」详情弹窗里维护，避免日报表单被复杂化）
-      for(const t of baseTasks){
+      // F3+F4：只把 🔗 任务（带 type==='task' 的行）同步进 tasks 表；📝 日常事务仅存日报
+      const taskRows = baseTasks.filter(t => t.type === 'task');
+      for(const t of taskRows){
         try{
           t.task_id = await upsertTask(t, authUnion, d.reportToUnion, d.date, reportId);
         }catch(te){ console.error('[task upsert]', te); }
@@ -2125,16 +2258,17 @@ async function saveReport(){
 /** 把一条任务同步进 tasks 表：已有 task_id 则更新，否则新建；返回 tasks.id（uuid 字符串） */
 async function upsertTask(t, uid, reportToUnion, date, reportId){
   const completed = t.status==='已完成' ? date : null;
+  const priority = t.priority || '中';
   if(t.task_id){
     const {error}=await supa.from('tasks')
-      .update({ status:t.status, note:t.note||'', due_date:t.due||null, report_to_union:reportToUnion, completed_date:completed, updated_at:new Date().toISOString() })
+      .update({ status:t.status, priority, note:t.note||'', due_date:t.due||null, report_to_union:reportToUnion, completed_date:completed, updated_at:new Date().toISOString() })
       .eq('id', t.task_id).eq('union_id', uid);
     if(error) console.warn('[task] update failed', error);
     return t.task_id;
   }
   const {data, error}=await supa.from('tasks').insert({
     union_id:uid, report_to_union:reportToUnion, parent_id:null,
-    title:t.desc, status:t.status, note:t.note||'', due_date:t.due||null,
+    title:t.desc, status:t.status, priority, note:t.note||'', due_date:t.due||null,
     created_date:date, completed_date:completed, source_report_id:reportId
   }).select('id').single();
   if(error) throw error;
@@ -2758,7 +2892,7 @@ function todayStr(){
 }
 
 /* ========== 任务跟进页 ========== */
-let followRole='mine', followView='week', followAnchor='';  // 周期锚点(YYYY-MM-DD)：周视图=锚点所在周一；月视图=锚点所在月1号
+let followRole='mine', followView='week', followAnchor='', overviewFilter='';  // overviewFilter: ''|'high'|'mid'|'low'|'overdue'|'done'
 function ensureFollowAnchor(){ if(!followAnchor) followAnchor=todayStr(); }
 function startOfWeek(d){
   const dt=new Date(d); const day=(dt.getDay()||7)-1; dt.setDate(dt.getDate()-day); dt.setHours(0,0,0,0); return dt;
@@ -2885,6 +3019,49 @@ function renderFollowFromCache(){
   const stat=document.getElementById('followStat');
   if(board && stat) renderFollow(_fp||[], _fc||{}, stat, board);
 }
+
+/** F2 在手任务总览条：📋在手｜🔴高｜🟡中｜⚪低｜⚠️逾期｜✅本周完成 */
+function updateOverview(parents){
+  const el=document.getElementById('overviewStrip');
+  if(!el) return;
+  const today=todayStr();
+  // 本周范围
+  const s=startOfWeek(today); const e=new Date(s); e.setDate(s.getDate()+7);
+  // 在手 = 状态≠已完成
+  const open=parents.filter(p=>p.status!=='已完成');
+  const cntHigh=open.filter(p=>p.priority==='高').length;
+  const cntMid =open.filter(p=>p.priority==='中').length;
+  const cntLow =open.filter(p=>p.priority==='低').length;
+  const cntOver=open.filter(p=>p.due_date && p.due_date < today).length;
+  const cntDone=parents.filter(p=>p.status==='已完成' && p.completed_date && new Date(p.completed_date)>=s && new Date(p.completed_date)<e).length;
+  const cell=(key, label, n, cls)=>`<span class="overview-cell ${cls||''} ${overviewFilter===key?'active':''}" onclick="toggleOverviewFilter('${key}')"><span class="overview-num">${n}</span><span>${label}</span></span>`;
+  el.innerHTML =
+    `<span class="overview-strip-label">📋 在手 ${open.length} 项</span>`+
+    cell('high','🔴 高优', cntHigh, 'pri-high')+
+    cell('mid','🟡 中优', cntMid, 'pri-mid')+
+    cell('low','⚪ 低优', cntLow, 'pri-low')+
+    cell('overdue','⚠️ 逾期', cntOver, 'pri-overdue')+
+    cell('done','✅ 本周完成', cntDone, 'pri-done')+
+    (overviewFilter ? `<span class="overview-cell active" onclick="toggleOverviewFilter('')">❌ 清除筛选</span>` : '');
+}
+function toggleOverviewFilter(key){
+  overviewFilter = (overviewFilter===key ? '' : key);
+  renderFollowFromCache();
+}
+function applyOverviewFilter(arr){
+  const today=todayStr();
+  switch(overviewFilter){
+    case 'high': return arr.filter(p=>p.priority==='高');
+    case 'mid':  return arr.filter(p=>p.priority==='中');
+    case 'low':  return arr.filter(p=>p.priority==='低');
+    case 'overdue': return arr.filter(p=>p.due_date && p.due_date < today && p.status!=='已完成');
+    case 'done': {
+      const s=startOfWeek(today); const e=new Date(s); e.setDate(s.getDate()+7);
+      return arr.filter(p=>p.status==='已完成' && p.completed_date && new Date(p.completed_date)>=s && new Date(p.completed_date)<e);
+    }
+    default: return arr;
+  }
+}
 let _fp=[], _fc={};  // 缓存：父任务列表 / parent_id→子任务映射
 
 function switchFollowRole(r){
@@ -2906,13 +3083,13 @@ async function bringUnfinished(){
   if(!supa || !uid){ toast('⚠️ 请先登录并连接云端'); return; }
   try{
     const {data,error}=await supa.from('tasks')
-      .select('id,title,status,note,due_date')
+      .select('id,title,status,note,due_date,priority')
       .eq('union_id',uid).neq('status','已完成')
       .order('created_date',{ascending:false});
     if(error) throw error;
     if(!data || !data.length){ toast('🎉 当前没有未完成的任务'); return; }
     data.forEach(t=>{
-      addTaskRow({ desc:t.title, status:t.status, note:t.note||'', due:t.due_date||'', task_id:t.id });
+      addTaskRow({ desc:t.title, status:t.status, note:t.note||'', due:t.due_date||'', task_id:t.id, priority:t.priority||'中' });
     });
     saveDraft();
     toast(`📥 已带入 ${data.length} 条未完成任务（可继续补充后提交）`);
@@ -2957,11 +3134,17 @@ async function loadFollow(){
 
 function renderFollow(parents, childMap, stat, board){
   ensureFollowAnchor();
+  // 总览条用全量父任务统计（不受周期/过滤影响）
+  updateOverview(parents);
   // 按锚点过滤本周/月有动作的任务（创建日或完成日落入周期）
   let scopeP = parents;
   if(followView==='week' || followView==='month'){
     const [s,e] = followScopeRange(followView, followAnchor);
     scopeP = parents.filter(p => taskInScope(p, s, e));
+  }
+  // 应用总览条过滤（F2：点击数字切换只看该子集）
+  if(overviewFilter){
+    scopeP = applyOverviewFilter(scopeP);
   }
   const cnt={进行中:0,阻塞:0,待开始:0,已完成:0};
   scopeP.forEach(p=>{ cnt[p.status]=(cnt[p.status]||0)+1; });
@@ -2984,8 +3167,19 @@ function renderFollow(parents, childMap, stat, board){
       {key:'待开始',cls:'fcol-todo',label:'⚪ 待开始'},
       {key:'已完成',cls:'fcol-done',label:'🟩 已完成'}
     ];
+    // F1：列内按优先级（高→中→低）→ 逾期优先 → 创建时间倒序
+    const PRIW={高:0,中:1,低:2};
+    const sortFn=(a,b)=>{
+      const pa=PRIW[a.priority||'中']||1, pb=PRIW[b.priority||'中']||1;
+      if(pa!==pb) return pa-pb;
+      const today=todayStr();
+      const oa=(a.due_date&&a.due_date<today&&a.status!=='已完成')?0:1;
+      const ob=(b.due_date&&b.due_date<today&&b.status!=='已完成')?0:1;
+      if(oa!==ob) return oa-ob;
+      return (b.created_date||'').localeCompare(a.created_date||'');
+    };
     board.innerHTML='<div class="follow-board">'+cols.map(col=>{
-      const list=scopeP.filter(p=>p.status===col.key);
+      const list=scopeP.filter(p=>p.status===col.key).sort(sortFn);
       const body=list.length? list.map(p=>taskCardHtml(p, childMap[p.id])).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px">暂无</div>';
       return `<div><div class="fcol-h ${col.cls}"><span>${col.label}</span><span>${list.length}</span></div><div class="fcol">${body}</div></div>`;
     }).join('')+'</div>';
@@ -3009,6 +3203,7 @@ function taskCardHtml(t, children){
     subs='<div class="sub-list">'+children.map(c=>`<div class="sub-item"><span class="s-st s-${subCls(c.status)}">${c.status}</span><span>${esc(c.title||'')}${c.note?': '+esc(c.note):''}</span></div>`).join('')+'</div>';
   }
   return `<div class="task-card ${overdue?'overdue':''}" onclick="openTaskDetail('${t.id}')">
+    <span class="tc-pri p-${esc((t.priority||'中')==='高'?'high':(t.priority||'中')==='低'?'low':'mid')}"></span>
     <div class="tc-title">${esc(t.title||'(无标题)')}</div>
     <div class="tc-meta">
       <span class="rd-status ${statusClass(t.status)}">${t.status}</span>
@@ -3081,6 +3276,7 @@ function openTaskDetail(id){
     <div class="td-row"><span class="td-k">创建日期</span><span>${t.created_date}</span></div>
     <div class="td-row"><span class="td-k">跟进时长</span><span>已跟进 ${days} 天</span></div>
     <div class="td-row"><span class="td-k">期望完成</span><span>${canEdit?`<input type="date" class="td-input" id="tdDue" value="${t.due_date||''}">`:esc(t.due_date||'未设置')}</span></div>
+    <div class="td-row"><span class="td-k">优先级</span><span>${canEdit?`<select class="td-input t-priority p-${t.priority==='高'?'high':t.priority==='低'?'low':'mid'}" id="tdPriority"><option value="高"${t.priority==='高'?' selected':''}>🔴 高</option><option value="中"${(!t.priority||t.priority==='中')?' selected':''}>🟡 中</option><option value="低"${t.priority==='低'?' selected':''}>⚪ 低</option></select>`:esc((t.priority||'中')+' 优')}</span></div>
     <div class="td-row"><span class="td-k">状态</span><span>${canEdit?`<select class="td-input" id="tdStatus">${STATUS_OPT(t.status)}</select>`:esc(t.status)}</span></div>
     <div class="td-row td-row-stack"><span class="td-k">备注</span>${canEdit?`<textarea class="td-input" id="tdNote" rows="2" placeholder="补充说明 / 进展">${esc(t.note||'')}</textarea>`:(t.note?`<div class="td-note">${esc(t.note)}</div>`:'<span style="color:var(--muted)">无</span>')}</div>
     ${canEdit?`<div class="btn-row" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="saveParentTask('${t.id}')">💾 保存主任务改动</button></div>`:''}
@@ -3194,17 +3390,18 @@ async function saveParentTask(id){
   const ok=await guardWrite('登录已过期，请先重新登录再保存任务');
   if(!ok) return;
   const status=document.getElementById('tdStatus').value;
+  const priority=document.getElementById('tdPriority').value||'中';
   const due=document.getElementById('tdDue').value||null;
   const note=(document.getElementById('tdNote').value||'').trim();
   const completed = status==='已完成' ? todayStr() : null;
   const meUid=(JSON.parse(localStorage.getItem(LS.dtUser)||'null')||{}).unionId||'';
   const {error}=await supa.from('tasks').update({
-    status,due_date:due,note,completed_date:completed,updated_at:new Date().toISOString()
+    status,priority,due_date:due,note,completed_date:completed,updated_at:new Date().toISOString()
   }).eq('id',id).eq('union_id',meUid);
   if(error){ toast('❌ 保存失败：'+error.message); return; }
   // 更新本地
   const t=_fp.find(x=>x.id===id);
-  if(t){ t.status=status; t.due_date=due; t.note=note; t.completed_date=completed; }
+  if(t){ t.status=status; t.priority=priority; t.due_date=due; t.note=note; t.completed_date=completed; }
   toast('✅ 主任务已保存');
   loadFollow();
 }
