@@ -11,6 +11,7 @@
 
 ## 2026-08-06
 
+- fix: 表格内控件 padding-top 14px+min-height 56px 让序号/状态/到期明显视觉居中
 - fix: 表格内控件垂直居中——状态/到期列改flex容器不再高低不齐
 - fix: 表格5列顶部不对齐——统一table.tasks td顶padding为6px(原为0/0/14px/6px/6px多档错位)、.tnum取消14px hack改flex-start、select.t-status显式高度与input.t-due对齐，三列控件顶部精确同水平线
 - refactor: 到期日拆为独立第4列——表格升级为5列(#/任务描述/状态/到期/结果·产出·进展)，移除全部绝对定位代码(.t-due-row/.col-res position:absolute)，到期作为普通td单元格彻底根治错行

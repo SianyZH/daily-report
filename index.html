@@ -64,7 +64,7 @@
   table.tasks{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;border:1px solid var(--border);table-layout:fixed}
   table.tasks th{background:#f8f9fc;padding:12px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
   table.tasks td{border-top:1px solid var(--border);padding:6px 0;vertical-align:top}
-  .tnum{padding:6px 6px;font-weight:700;color:var(--primary);width:54px;display:flex;align-items:center;justify-content:center;gap:3px;text-align:center}
+  .tnum{padding:14px 6px 6px;font-weight:700;color:var(--primary);width:54px;display:flex;align-items:center;justify-content:center;gap:3px;text-align:center;min-height:56px;box-sizing:border-box}
   table.tasks th:nth-child(1){width:44px}
   table.tasks th:nth-child(3){width:96px}
   table.tasks th:nth-child(4){width:148px}  /* 到期列 */
@@ -238,8 +238,9 @@
 .week-col h4{font-size:13px;color:var(--muted);margin:0 0 10px}
 .week-col .wc-item{font-size:13px;padding:5px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:8px}
 .week-col .wc-item:last-child{border-bottom:none}
-/* 到期列 + 状态列：td 改 flex 容器，让 select/input 与中间行（描述/备注）垂直居中，高高低低不再有 */
-.t-status-cell,.t-due-cell{padding:6px 12px;display:flex;align-items:center;justify-content:center}
+/* 到期列 + 状态列：td 改 flex 容器，让 select/input 与中间行（描述/备注）垂直居中，高高低低不再有。
+   注：单行 textarea 高度与 select 接近，纯 flex 居中视觉仍贴顶，故再加 padding-top 14px 让控件视觉明显居中 */
+.t-status-cell,.t-due-cell{padding:14px 12px 6px;display:flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box}
 .t-due-cell input.t-due{width:100%;max-width:130px;border:1px solid var(--border);border-radius:8px;padding:5px 6px;font-size:12px;font-family:inherit;background:#fff;color:var(--text);min-height:30px;box-sizing:border-box}
 table.tasks select.t-status{width:100%;border:1px solid var(--border);border-radius:8px;padding:5px 6px;font-size:13px;font-family:inherit;background:#fff;color:var(--text);min-height:30px;box-sizing:border-box}
 .t-note-cell{padding:6px 12px}
