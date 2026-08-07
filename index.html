@@ -68,28 +68,29 @@
   table.tasks th{background:#f8f9fc;padding:12px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
   table.tasks td{border-top:1px solid var(--border);padding:8px 12px;vertical-align:top}
   .cell-wrap{display:flex;align-items:flex-start;width:100%}
-  .tnum{width:54px;text-align:center;font-weight:700;color:var(--primary)}
-  .tnum .cell-wrap{justify-content:center;gap:3px}
-  table.tasks th:nth-child(1){width:128px}  /* 类型列 */
-  table.tasks th:nth-child(2){width:44px}   /* #序号 */
-  table.tasks th:nth-child(4){width:112px}  /* 状态 */
-  table.tasks th:nth-child(5){width:148px}  /* 到期列 */
-  table.tasks th:nth-child(6){width:40%}    /* 结果/产出/进展列 */
+  .tnum{width:40px;text-align:center;font-weight:700;color:var(--primary);padding-left:4px;padding-right:4px}
+  .tnum .cell-wrap{justify-content:center;gap:3px;align-items:center;height:36px}
+  .t-type-cell{padding-left:6px;padding-right:6px}
+  .t-type-cell .cell-wrap{align-items:center;height:36px;gap:3px}
+  table.tasks th:nth-child(1){width:60px}   /* 类型列 */
+  table.tasks th:nth-child(2){width:40px}   /* #序号 */
+  table.tasks th:nth-child(4){width:140px}  /* 状态（状态下拉+优先级） */
+  table.tasks th:nth-child(5){width:138px}  /* 到期列 */
+  table.tasks th:nth-child(6){width:32%}    /* 结果/产出/进展列 —— 剩余宽度全给任务描述（重点内容） */
   .drag-handle{cursor:grab;color:var(--muted);font-size:13px;line-height:1;user-select:none;flex:0 0 auto;opacity:.5;transition:opacity .15s}
   .drag-handle:hover{opacity:1;color:var(--primary)}
   .drag-handle:active{cursor:grabbing}
   tr.sortable-ghost{opacity:.35}
   tr.sortable-chosen{background:#fafbff}
   tr.sortable-drag{background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
-  /* ★ 三控件完全统一 → 文字基线严格对齐；textarea 默认 1 行，JS 自动增高
-     padding-top=10 让单行 textarea 文字 baseline 与 select/date 重合（补足浏览器原生 chrome 的下移偏差） */
-  table.tasks textarea,table.tasks select.t-status,.t-due-cell input.t-due{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 10px 6px;font-size:13px;line-height:1.4;font-family:inherit;background:#fff;color:var(--text);min-height:34px;box-sizing:border-box;outline:none}
+  /* ★ 全部控件统一 36px 高 + 8px 对称内边距 → 整行盒高一致，不再高高低低；textarea 默认 1 行，JS 自动增高 */
+  table.tasks textarea,table.tasks select.t-status,.t-due-cell input.t-due{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.4;font-family:inherit;background:#fff;color:var(--text);height:36px;box-sizing:border-box;outline:none}
   /* textarea/select 干掉浏览器原生 chrome（原生 padding 会覆盖 CSS）；date input 保留原生外观以正常弹日期面板 */
   table.tasks textarea,table.tasks select.t-status{appearance:none;-webkit-appearance:none}
-  table.tasks textarea{max-height:200px;overflow:hidden;resize:vertical}
+  table.tasks textarea{height:auto;min-height:36px;max-height:200px;overflow:hidden;resize:vertical}
   table.tasks textarea:focus,table.tasks select.t-status:focus,.t-due-cell input.t-due:focus{background:#fafbff;box-shadow:inset 0 0 0 2px var(--primary);border-color:var(--primary)}
-  /* 给 select 加自定义下拉箭头（小三角 SVG）；date input 不画箭头（点击即弹日期面板） */
-  table.tasks select.t-status{padding:10px 26px 6px 8px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 14px) 15px,calc(100% - 9px) 15px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  /* 给 select 加自定义下拉箭头（小三角，垂直居中）；date input 不画箭头（点击即弹日期面板） */
+  table.tasks select.t-status{padding:8px 24px 8px 8px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 13px) center,calc(100% - 8px) center;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 
   .report-to{text-align:right;margin-top:18px;font-style:italic;font-weight:700;color:var(--accent)}
   .report-to input,.report-to select{border:1px solid var(--border);border-radius:8px;outline:none;font-weight:700;font-size:15px;padding:7px 10px;color:var(--text);background:#fff;max-width:260px}
@@ -191,7 +192,8 @@
     .ai-out{font-size:14px;padding:16px}
     .filters .field{min-width:120px;flex:1}
     table.tasks{table-layout:fixed}
-    .tnum,.tasks th:nth-child(1){width:48px;min-width:0}
+    .tasks th:nth-child(1){width:52px;min-width:0}
+    .tnum{width:36px;min-width:0}
   }
   @media(max-width:480px){
     .main{padding:14px 12px}
@@ -200,7 +202,10 @@
     .nav-icon{font-size:16px}
     table.tasks th{font-size:11px;padding:10px 8px}
     .tnum{width:32px;font-size:13px}
-    table.tasks th:nth-child(4){width:118px}
+    table.tasks th:nth-child(4){width:104px}
+    /* 窄屏：状态列上下堆叠（状态下拉整行，优先级整行），避免文字被裁 */
+    .t-status-cell .cell-wrap{flex-direction:column;gap:4px;align-items:stretch}
+    table.tasks select.t-priority{flex:1 1 auto;width:100%;height:28px;padding:0 0 0 8px}
     .login-card{padding:32px 18px}
     .login-logo{font-size:48px}
     .login-title{font-size:23px}
@@ -285,16 +290,15 @@
 .row-type.t-task{color:var(--primary)}
 .row-type.t-misc{color:var(--muted)}
 
-/* 优先级列（日报表单） */
-select.t-priority{font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;background:#fff;cursor:pointer;min-height:30px;box-sizing:border-box}
+/* 优先级列（日报表单）—— 34px 迷你 emoji 方块，去原生箭头，悬停 title 说明；限 table.tasks 内，勿影响详情弹窗的全文下拉 */
+table.tasks select.t-priority{flex:0 0 34px;width:34px;height:36px;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:0 0 0 8px;font-family:inherit;background:#fff;cursor:pointer;box-sizing:border-box;appearance:none;-webkit-appearance:none;line-height:1}
 select.t-priority.p-high{background:var(--p-high-bg);color:var(--p-high);font-weight:700}
 select.t-priority.p-mid {background:var(--p-mid-bg);color:var(--p-mid);font-weight:700}
 select.t-priority.p-low {background:var(--p-low-bg);color:var(--p-low)}
 
-/* 转任务按钮（F4b） */
-.promote-btn{font-size:14px;background:none;border:1px dashed var(--border);border-radius:6px;color:var(--primary);cursor:pointer;padding:4px 8px;font-family:inherit;white-space:nowrap;transition:.15s}
+/* 转任务按钮（F4b）—— 22px 小图标，悬停出 title 浮窗说明 */
+.promote-btn{width:22px;height:22px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:1;background:none;border:1px dashed var(--border);border-radius:6px;color:var(--primary);cursor:pointer;padding:0;font-family:inherit;transition:.15s}
 .promote-btn:hover{background:var(--p-high-bg);border-color:var(--primary);border-style:solid}
-.promote-btn.done{background:var(--p-high-bg);border-color:var(--primary);border-style:solid;color:var(--primary)}
 
 /* 跟进页新建任务按钮（F4b） */
 .new-task-btn{padding:10px 18px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-family:inherit;font-size:14px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.2s}
@@ -1223,11 +1227,11 @@ function addTaskRow(init){
   const t = init || {desc:'', status:'进行中', note:'', due:'', task_id:''};
   const sel = (v)=>`<option value="进行中"${v==='进行中'?' selected':''}>进行中</option><option value="已完成"${v==='已完成'?' selected':''}>已完成</option><option value="阻塞"${v==='阻塞'?' selected':''}>阻塞</option><option value="待开始"${v==='待开始'?' selected':''}>待开始</option>`;
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="t-type-cell"><div class="cell-wrap"><span class="row-type ${t.task_id?'t-task':'t-misc'}" title="${t.task_id?'🔗 已关联任务（提交会回写 tasks 表）':'📝 日常事务（仅存日报，不会进入任务跟进）'}">${t.task_id?'🔗':'📝'}</span>${!t.task_id?`<button type="button" class="promote-btn" onclick="promoteToTask(this)" title="转为任务，提交后进入任务跟进">➕ 转为任务</button>`:''}</div></td>
+  tr.innerHTML=`<td class="t-type-cell"><div class="cell-wrap"><span class="row-type ${t.task_id?'t-task':'t-misc'}" title="${t.task_id?'🔗 已关联任务（提交会回写 tasks 表）':'📝 日常事务（仅存日报，不会进入任务跟进）'}">${t.task_id?'🔗':'📝'}</span>${!t.task_id?`<button type="button" class="promote-btn" onclick="promoteToTask(this)" title="转为任务：提交后此行进入「任务跟进」看板，可跟踪进度/拆子任务" aria-label="转为任务">➕</button>`:''}</div></td>
     <td class="tnum"><div class="cell-wrap"><span class="drag-handle" title="拖动可调整顺序">⠿</span><span class="tnum-text">${i}</span></div><input type="hidden" class="t-taskid" data-i="${i}" value="${t.task_id||''}"></td>
     <td><div class="cell-wrap"><textarea class="t-desc" data-i="${i}" placeholder="任务 ${i}..." rows="1">${esc(t.desc||'')}</textarea></div></td>
-    <td>
-      <div class="cell-wrap" style="gap:4px"><select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select><select class="t-priority p-${(t.priority||'中')==='高'?'high':(t.priority||'中')==='低'?'low':'mid'}" data-i="${i}" title="优先级"><option value="高"${t.priority==='高'?' selected':''}>🔴</option><option value="中"${(!t.priority||t.priority==='中')?' selected':''}>🟡</option><option value="低"${t.priority==='低'?' selected':''}>⚪</option></select></div>
+    <td class="t-status-cell">
+      <div class="cell-wrap" style="gap:4px"><select class="t-status" data-i="${i}">${sel(t.status||'进行中')}</select><select class="t-priority p-${(t.priority||'中')==='高'?'high':(t.priority||'中')==='低'?'low':'mid'}" data-i="${i}" title="优先级：🔴高 / 🟡中 / ⚪低"><option value="高"${t.priority==='高'?' selected':''}>🔴</option><option value="中"${(!t.priority||t.priority==='中')?' selected':''}>🟡</option><option value="低"${t.priority==='低'?' selected':''}>⚪</option></select></div>
     </td>
     <td class="t-due-cell">
       <div class="cell-wrap"><input type="date" class="t-due" data-i="${i}" value="${t.due||''}" title="期望完成日"></div>
@@ -1237,6 +1241,9 @@ function addTaskRow(init){
     </td>`;
   tb.appendChild(tr);
   tr.querySelectorAll('textarea,select,input').forEach(el=>el.addEventListener('input',saveDraft));
+  // 优先级切换即时换色（🔴高/🟡中/⚪低）
+  const pr=tr.querySelector('select.t-priority');
+  if(pr) pr.addEventListener('change',()=>{ pr.className='t-priority p-'+({'高':'high','中':'mid','低':'low'}[pr.value]||'mid'); });
   // textarea 随内容自动增高（默认 1 行，超出行高时撑开，封顶 200px）
   tr.querySelectorAll('textarea.t-desc,textarea.t-note').forEach(el=>{
     el.addEventListener('input',()=>autoResizeTaskTextarea(el));
