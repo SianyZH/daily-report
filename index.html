@@ -68,7 +68,9 @@
   table.tasks th{background:#f8f9fc;padding:12px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
   table.tasks td{border-top:1px solid var(--border);padding:8px 12px;vertical-align:top}
   .cell-wrap{display:flex;align-items:flex-start;width:100%}
-  .tnum{width:40px;text-align:center;font-weight:700;color:var(--primary);padding-left:4px;padding-right:4px}
+  .tnum{width:40px;text-align:center;font-weight:700;color:var(--primary);padding-left:4px;padding-right:4px;cursor:grab;transition:background .15s}
+  .tnum:hover{background:#f0f2f8}
+  .tnum:active{cursor:grabbing}
   .tnum .cell-wrap{justify-content:center;gap:3px;align-items:center;height:36px}
   .t-type-cell{padding-left:6px;padding-right:6px}
   .t-type-cell .cell-wrap{align-items:center;height:36px;gap:3px}
@@ -77,8 +79,8 @@
   table.tasks th:nth-child(4){width:140px}  /* 状态（状态下拉+优先级） */
   table.tasks th:nth-child(5){width:138px}  /* 到期列 */
   table.tasks th:nth-child(6){width:32%}    /* 结果/产出/进展列 —— 剩余宽度全给任务描述（重点内容） */
-  .drag-handle{cursor:grab;color:var(--muted);font-size:13px;line-height:1;user-select:none;flex:0 0 auto;opacity:.5;transition:opacity .15s}
-  .drag-handle:hover{opacity:1;color:var(--primary)}
+  .drag-handle{cursor:grab;color:var(--muted);font-size:14px;line-height:1;user-select:none;flex:0 0 auto;opacity:.7;transition:opacity .15s, color .15s}
+  .tnum:hover .drag-handle{opacity:1;color:var(--primary)}
   .drag-handle:active{cursor:grabbing}
   tr.sortable-ghost{opacity:.35}
   tr.sortable-chosen{background:#fafbff}
@@ -1341,12 +1343,12 @@ function renumberTasks(){
     });
   });
 }
-/** 初始化任务表拖拽（手柄触发；触摸端长按 120ms 避免与滚动冲突） */
+/** 初始化任务表拖拽（整列 # 都可拖，方便点击；鼠标悬停 # 列有高亮背景提示） */
 function initTaskSortable(){
   const tb=document.getElementById('taskBody');
   if(!tb || typeof Sortable==='undefined') return;
   new Sortable(tb,{
-    handle:'.drag-handle',
+    handle:'.tnum',
     animation:150,
     delay:120,
     delayOnTouchOnly:true,
